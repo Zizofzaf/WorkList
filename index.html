@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#f8f9fd" />
+  <title>JobTrack — Your career checklist</title>
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand"><span class="brand-icon">✓</span><span>jobtrack<span class="dot">.</span></span></div>
+      <div class="header-note"><span class="live-dot"></span>Your career checklist</div>
+    </header>
+    <main>
+      <div class="eyebrow">STAY ON TRACK</div>
+      <div class="hero">
+        <div><h1>One step <span>closer.</span></h1><p class="subtitle">Every application, all in one calm place.</p></div>
+        <button class="primary" id="addBtn" type="button">＋ &nbsp; New application</button>
+      </div>
+      <div class="toolbar">
+        <div class="queue-title">Your applications <span class="count" id="count">0</span></div>
+        <input class="search" type="search" id="search" placeholder="Search company or position..." aria-label="Search applications" />
+      </div>
+      <div id="list" class="list" aria-live="polite"></div>
+    </main>
+    <footer>
+      <span>Small steps. Big opportunities.</span>
+      <div class="footer-actions"><button type="button" class="link" id="backupBtn">Backup</button><button type="button" class="link" id="restoreBtn">Restore</button><input type="file" accept=".json,application/json" id="restoreFile" hidden /></div>
+    </footer>
+  </div>
+
+  <div class="overlay hidden" id="editorOverlay">
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-heading"><h2 id="modalTitle">New application</h2><button class="close" type="button" data-close aria-label="Close">×</button></div>
+      <form id="jobForm">
+        <div class="fields">
+          <div><label for="company">Company *</label><input class="field" id="company" required maxlength="120" placeholder="e.g. Colgate" /></div>
+          <div><label for="position">Position *</label><input class="field" id="position" required maxlength="180" placeholder="e.g. Management Trainee" /></div>
+          <div class="two">
+            <div><label for="applied">Applied date</label><input class="field" id="applied" type="date" /></div>
+            <div><label for="platform">Platform</label><select class="field" id="platform"><option>JobStreet</option><option>Career Website</option><option>LinkedIn</option><option>Email</option><option>Other</option></select></div>
+          </div>
+          <div><label for="status">Status</label><select class="field" id="status"><option>Pending</option><option>Assessment</option><option>Interview</option><option>Offer</option><option>Rejected</option><option>Job Closed</option></select></div>
+          <div><label for="notes">Notes (optional)</label><textarea class="field" id="notes" maxlength="5000" placeholder="Assessment, email, updates from HR..."></textarea></div>
+        </div>
+        <div class="actions"><button class="secondary" type="button" data-close>Cancel</button><button class="primary" type="submit">Save application</button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="overlay hidden" id="confirmOverlay">
+    <section class="modal" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmText">
+      <div class="modal-heading"><h2 id="confirmTitle">Delete application?</h2></div>
+      <p class="confirm-message" id="confirmText">This application will be permanently deleted. This action cannot be undone.</p>
+      <div class="actions"><button class="secondary" id="cancelDelete" type="button">Cancel</button><button class="danger" id="confirmDelete" type="button">Delete permanently</button></div>
+    </section>
+  </div>
+
+  <script src="js/storage.js" defer></script>
+  <script src="js/app.js" defer></script>
+</body>
+</html>

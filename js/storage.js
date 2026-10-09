@@ -1,7 +1,11 @@
 
 "use strict";
 
-// Keep the existing key to preserve V1 data.
+/* ================================
+   JOBTRACK V2 — STORAGE
+================================ */
+
+// Keep the old key so existing data survives.
 const KEY = "jobtrack_v1_applications";
 
 const ACTIVE_STATUSES = [
@@ -26,12 +30,17 @@ function isHistoryStatus(status) {
 }
 
 function validJob(job) {
-  if (!job || typeof job !== "object") {
+  if (
+    !job ||
+    typeof job !== "object" ||
+    Array.isArray(job)
+  ) {
     return false;
   }
 
   return (
     typeof job.id === "string" &&
+    job.id.length > 0 &&
     typeof job.company === "string" &&
     typeof job.position === "string" &&
     typeof job.applied === "string" &&
@@ -42,42 +51,57 @@ function validJob(job) {
   );
 }
 
+/* READ DATA */
+
 function readJobs() {
   try {
-    const stored = localStorage.getItem(KEY);
+    const saved = localStorage.getItem(KEY);
 
-    if (!stored) {
+    if (!saved) {
       return [];
     }
 
-    const parsed = JSON.parse(stored);
+    const parsed = JSON.parse(saved);
 
     if (!Array.isArray(parsed)) {
-      return [];
+      throw new Error("Invalid saved data");
     }
 
-    return parsed.filter(validJob);
+    if (!parsed.every(validJob)) {
+      throw new Error("Invalid application records");
+    }
+
+    return parsed;
 
   } catch (error) {
-    console.error("Unable to load applications:", error);
-    return [];
+    console.error("JobTrack read error:", error);
+
+    alert(
+      "Unable to read saved applications. " +
+      "Do not restore or add new data until " +
+      "you have checked your browser storage."
+    );
+
+    return null;
   }
 }
 
-function writeJobs(applications) {
+/* SAVE DATA */
+
+function writeJobs(data) {
   try {
     localStorage.setItem(
       KEY,
-      JSON.stringify(applications)
+      JSON.stringify(data)
     );
 
     return true;
 
   } catch (error) {
-    console.error("Unable to save applications:", error);
+    console.error("JobTrack save error:", error);
 
     alert(
-      "Unable to save your application. " +
+      "Unable to save changes. " +
       "Please check your browser storage."
     );
 
@@ -85,8 +109,13 @@ function writeJobs(applications) {
   }
 }
 
+/* CREATE UNIQUE ID */
+
 function createJobId() {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
@@ -97,17 +126,15 @@ function createJobId() {
   );
 }
 
+/* VALIDATE BACKUP */
+
 function validateBackup(data) {
-  if (!data || data.app !== "JobTrack") {
-    return false;
-  }
-
-  // Support old V1 backups and new V2 backups.
-  if (![1, 2].includes(data.version)) {
-    return false;
-  }
-
-  if (!Array.isArray(data.applications)) {
+  if (
+    !data ||
+    data.app !== "JobTrack" ||
+    ![1, 2].includes(data.version) ||
+    !Array.isArray(data.applications)
+  ) {
     return false;
   }
 

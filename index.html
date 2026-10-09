@@ -3,95 +3,163 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f8f9fd">
-  <title>JobTrack — Your career checklist</title>
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f8f9fc">
+
+  <title>JobTrack — Your Career Journey</title>
+
+  <link rel="preconnect"
+        href="https://fonts.googleapis.com">
+  <link rel="preconnect"
+        href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
   <link rel="stylesheet" href="css/style.css">
 </head>
+
 <body>
 
-<div class="shell">
+<div class="app-container">
 
   <!-- HEADER -->
   <header class="header">
     <div class="brand">
-      <span class="brand-icon">✓</span>
-      <span>jobtrack<span class="dot">.</span></span>
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round"
+             stroke-linejoin="round"
+             aria-hidden="true">
+          <rect x="3" y="7" width="18" height="14"
+                rx="2"/>
+          <path d="M8 7V5a2 2 0 0 1 2-2h4
+                   a2 2 0 0 1 2 2v2"/>
+          <path d="M3 12a20 20 0 0 0 18 0"/>
+        </svg>
+      </div>
+      <span>jobtrack<span class="accent">.</span></span>
     </div>
 
-    <div class="header-note">
-      <span class="live-dot"></span>
-      Your career checklist
+    <div class="header-right">
+      <span class="status-indicator"></span>
+      <span>Your career companion</span>
     </div>
   </header>
 
-  <!-- MAIN -->
   <main>
 
-    <div class="eyebrow">STAY ON TRACK</div>
-
+    <!-- HERO -->
     <section class="hero">
-      <div>
-        <h1>One step <span>closer.</span></h1>
-        <p class="subtitle">
-          Every application, all in one calm place.
-        </p>
+      <div class="eyebrow">
+        <span class="eyebrow-line"></span>
+        YOUR CAREER JOURNEY
       </div>
 
-      <button class="primary" id="addBtn" type="button">
-        + New application
-      </button>
+      <h1>One step <span>closer.</span></h1>
+
+      <p class="hero-description">
+        A simple space for every opportunity.
+      </p>
     </section>
 
-    <!-- NAVIGATION -->
-    <section class="workspace">
+    <!-- STATISTICS -->
+    <section class="stats" aria-label="Application statistics">
 
-      <nav class="tabs" aria-label="Application views">
-        <button
-          class="tab active"
-          id="activeTab"
-          type="button"
-          aria-pressed="true"
-        >
+      <div class="stat-card">
+        <span class="stat-label">Active applications</span>
+        <div class="stat-bottom">
+          <strong id="statActive">0</strong>
+          <span class="stat-icon stat-purple">↗</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">Interviews</span>
+        <div class="stat-bottom">
+          <strong id="statInterview">0</strong>
+          <span class="stat-icon stat-orange">◎</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <span class="stat-label">History</span>
+        <div class="stat-bottom">
+          <strong id="statHistory">0</strong>
+          <span class="stat-icon stat-gray">◷</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- APPLICATIONS -->
+    <section class="applications-section">
+
+      <div class="section-header">
+        <div>
+          <h2>Applications</h2>
+          <p>Manage your opportunities in one place.</p>
+        </div>
+
+        <button class="btn-primary" id="addBtn"
+                type="button">
+          <span class="plus-icon">+</span>
+          New application
+        </button>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs" role="group"
+           aria-label="Application views">
+        <button class="tab active" id="activeTab"
+                type="button" aria-pressed="true">
           Active
           <span class="tab-count" id="activeCount">0</span>
         </button>
 
-        <button
-          class="tab"
-          id="historyTab"
-          type="button"
-          aria-pressed="false"
-        >
+        <button class="tab" id="historyTab"
+                type="button" aria-pressed="false">
           History
           <span class="tab-count" id="historyCount">0</span>
         </button>
-      </nav>
+      </div>
 
-      <!-- TOOLBAR -->
+      <!-- FILTER TOOLBAR -->
       <div class="toolbar">
 
-        <div>
-          <h2 class="queue-title" id="listTitle">
-            Your applications
-          </h2>
-          <p class="section-description" id="listDescription">
-            Applications you're currently tracking.
-          </p>
+        <div class="search-wrapper">
+          <svg viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2"
+               stroke-linecap="round"
+               aria-hidden="true">
+            <circle cx="11" cy="11" r="7"/>
+            <path d="m20 20-4-4"/>
+          </svg>
+
+          <input
+            type="search"
+            id="search"
+            placeholder="Search applications..."
+            autocomplete="off"
+            aria-label="Search applications">
         </div>
 
-        <input
-          class="search"
-          type="search"
-          id="search"
-          placeholder="Search company or position..."
-          aria-label="Search applications"
-        >
+        <div class="sort-wrapper">
+          <label for="sortSelect">Sort by</label>
+          <select id="sortSelect">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="az">Company A–Z</option>
+          </select>
+        </div>
 
       </div>
 
-      <!-- APPLICATION LIST -->
-      <div id="list" class="list" aria-live="polite"></div>
+      <!-- JOB CARDS -->
+      <div id="list" class="job-list"
+           aria-live="polite"></div>
 
     </section>
   </main>
@@ -101,193 +169,151 @@
     <span>Small steps. Big opportunities.</span>
 
     <div class="footer-actions">
-      <button class="link" id="backupBtn" type="button">
-        Backup
-      </button>
-
-      <button class="link" id="restoreBtn" type="button">
-        Restore
-      </button>
-
-      <input
-        type="file"
-        id="restoreFile"
-        accept=".json,application/json"
-        hidden
-      >
+      <button id="backupBtn" type="button">Backup</button>
+      <span class="footer-divider">·</span>
+      <button id="restoreBtn" type="button">Restore</button>
     </div>
+
+    <input type="file" id="restoreFile"
+           accept=".json,application/json" hidden>
   </footer>
 
 </div>
 
-<!-- ADD / EDIT POPUP -->
+<!-- APPLICATION MODAL -->
 <div class="overlay hidden" id="editorOverlay">
 
-  <section
-    class="modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="modalTitle"
-  >
+  <div class="modal" role="dialog"
+       aria-modal="true"
+       aria-labelledby="modalTitle">
 
-    <div class="modal-heading">
-      <h2 id="modalTitle">New application</h2>
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">
+          APPLICATION DETAILS
+        </span>
+        <h2 id="modalTitle">New application</h2>
+      </div>
 
-      <button
-        class="close"
-        type="button"
-        data-close
-        aria-label="Close"
-      >×</button>
+      <button class="modal-close" type="button"
+              data-close aria-label="Close dialog">
+        &times;
+      </button>
     </div>
 
     <form id="jobForm">
 
-      <div class="fields">
+      <div class="form-group">
+        <label for="company">Company name *</label>
+        <input id="company" class="form-control"
+               placeholder="e.g. Colgate"
+               maxlength="120" required>
+      </div>
 
-        <div>
-          <label for="company">Company *</label>
-          <input
-            class="field"
-            id="company"
-            required
-            maxlength="120"
-            placeholder="e.g. Colgate"
-          >
+      <div class="form-group">
+        <label for="position">Job position *</label>
+        <input id="position" class="form-control"
+               placeholder="e.g. Management Trainee"
+               maxlength="180" required>
+      </div>
+
+      <div class="form-row">
+
+        <div class="form-group">
+          <label for="applied">Date applied</label>
+          <input id="applied" class="form-control"
+                 type="date">
         </div>
 
-        <div>
-          <label for="position">Position *</label>
-          <input
-            class="field"
-            id="position"
-            required
-            maxlength="180"
-            placeholder="e.g. Management Trainee"
-          >
-        </div>
-
-        <div class="two">
-
-          <div>
-            <label for="applied">Applied date</label>
-            <input
-              class="field"
-              id="applied"
-              type="date"
-            >
-          </div>
-
-          <div>
-            <label for="platform">Platform</label>
-            <select class="field" id="platform">
-              <option>JobStreet</option>
-              <option>Career Website</option>
-              <option>LinkedIn</option>
-              <option>Email</option>
-              <option>Other</option>
-            </select>
-          </div>
-
-        </div>
-
-        <div>
-          <label for="status">Application status</label>
-
-          <select class="field" id="status">
-            <optgroup label="Active">
-              <option value="Pending">Pending</option>
-              <option value="Assessment">Assessment</option>
-              <option value="Interview">Interview</option>
-              <option value="Offer">Offer</option>
-            </optgroup>
-
-            <optgroup label="History">
-              <option value="Rejected">Rejected</option>
-              <option value="Job Closed">Job Closed</option>
-            </optgroup>
+        <div class="form-group">
+          <label for="platform">Platform</label>
+          <select id="platform" class="form-control">
+            <option>JobStreet</option>
+            <option>Career Website</option>
+            <option>LinkedIn</option>
+            <option>Email</option>
+            <option>Other</option>
           </select>
-
-          <p class="field-help" id="statusHelp">
-            Rejected and Job Closed applications are moved to History.
-          </p>
-        </div>
-
-        <div>
-          <label for="notes">Notes (optional)</label>
-          <textarea
-            class="field"
-            id="notes"
-            maxlength="5000"
-            placeholder="Assessment, email, updates from HR..."
-          ></textarea>
         </div>
 
       </div>
 
-      <div class="actions">
-        <button
-          class="secondary"
-          type="button"
-          data-close
-        >
+      <div class="form-group">
+        <label for="status">Application status</label>
+        <select id="status" class="form-control">
+          <optgroup label="Active">
+            <option value="Pending">Pending</option>
+            <option value="Assessment">Assessment</option>
+            <option value="Interview">Interview</option>
+            <option value="Offer">Offer</option>
+          </optgroup>
+
+          <optgroup label="History">
+            <option value="Rejected">Rejected</option>
+            <option value="Job Closed">Job Closed</option>
+          </optgroup>
+        </select>
+
+        <p class="form-hint" id="statusHelp">
+          This application will appear under Active.
+        </p>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Notes</label>
+        <textarea
+          id="notes"
+          class="form-control"
+          rows="3"
+          maxlength="5000"
+          placeholder="Assessment, HR response, or anything important..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" type="button"
+                data-close>
           Cancel
         </button>
 
-        <button
-          class="primary"
-          type="submit"
-          id="saveBtn"
-        >
+        <button class="btn-primary" type="submit"
+                id="saveBtn">
           Save application
         </button>
       </div>
 
     </form>
-
-  </section>
-
+  </div>
 </div>
 
 <!-- RESTORE CONFIRMATION -->
 <div class="overlay hidden" id="confirmOverlay">
 
-  <section
-    class="modal confirm-modal"
-    role="alertdialog"
-    aria-modal="true"
-    aria-labelledby="confirmTitle"
-  >
+  <div class="modal confirm-modal"
+       role="alertdialog"
+       aria-modal="true"
+       aria-labelledby="confirmTitle">
 
-    <div class="modal-heading">
+    <div class="modal-header">
       <h2 id="confirmTitle">Restore backup?</h2>
     </div>
 
-    <p class="confirm-message" id="confirmText"></p>
+    <p id="confirmText" class="confirm-text"></p>
 
-    <div class="actions">
-      <button
-        class="secondary"
-        id="cancelConfirm"
-        type="button"
-      >
+    <div class="modal-actions">
+      <button class="btn-secondary" type="button"
+              id="cancelConfirm">
         Cancel
       </button>
 
-      <button
-        class="primary"
-        id="confirmAction"
-        type="button"
-      >
+      <button class="btn-primary" type="button"
+              id="confirmAction">
         Restore
       </button>
     </div>
 
-  </section>
-
+  </div>
 </div>
 
-<!-- JAVASCRIPT -->
 <script src="js/storage.js" defer></script>
 <script src="js/app.js" defer></script>
 

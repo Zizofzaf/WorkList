@@ -1,172 +1,77 @@
 
 "use strict";
 
+/* ================================
+   JOBTRACK V2 — MAIN APPLICATION
+================================ */
+
 const $ = id => document.getElementById(id);
 
-// Application state
+/* ================================
+   STATE
+================================ */
 
-const STARTER_JOBS = [
-  {
-    company: "Colgate",
-    position: "Management Trainee",
-    applied: "",
-    platform: "Other",
-    status: "Pending",
-    notes: "Applied in September 2026. Exact date not recorded."
-  },
-  {
-    company: "P&G",
-    position: "Sales Key Account Trainee",
-    applied: "2026-09-24",
-    platform: "Career Website",
-    status: "Rejected",
-    notes: "Assessment completed."
-  },
-  {
-    company: "KWSP",
-    position: "Exec I, Tech & Analytics, Legal Sight, Technology & Support",
-    applied: "2026-09-24",
-    platform: "Career Website",
-    status: "Pending",
-    notes: "Expected response within 2 months."
-  },
-  {
-    company: "Hock Mei Trading",
-    position: "HR & Admin Executive",
-    applied: "2026-09-28",
-    platform: "JobStreet",
-    status: "Job Closed",
-    notes: ""
-  },
-  {
-    company: "SLB",
-    position: "Early Careers (Commercial & Business)",
-    applied: "2026-09-28",
-    platform: "Career Website",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "Duopharma Biotech",
-    position: "Graduate Trainee Programme",
-    applied: "2026-09-30",
-    platform: "Career Website",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "Econsave",
-    position: "Management Trainee (Purchasing)",
-    applied: "2026-10-05",
-    platform: "JobStreet",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "Toyota",
-    position: "Management Trainee",
-    applied: "2026-10-07",
-    platform: "JobStreet",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "SSM",
-    position: "Apprenticeship Program (SAP)",
-    applied: "2026-10-07",
-    platform: "JobStreet",
-    status: "Pending",
-    notes: "Email received on 8 October 2026 at 8:00 AM."
-  },
-  {
-    company: "MR.DIY",
-    position: "Sales Executive (Corporate Sales)",
-    applied: "",
-    platform: "Career Website",
-    status: "Pending",
-    notes: "Application date not recorded."
-  },
-  {
-    company: "Mydin",
-    position: "Not specified",
-    applied: "",
-    platform: "Other",
-    status: "Pending",
-    notes: "Position, platform and application date not provided."
-  }
-];
+const savedJobs = readJobs();
 
-// Import starter data only once per browser.
-const STARTER_IMPORT_KEY = "jobtrack_starter_v1_imported";
-
-let jobs = readJobs();
-
-if (localStorage.getItem(STARTER_IMPORT_KEY) !== "yes") {
-  const existing = new Set(
-    jobs.map(job =>
-      `${job.company}|${job.position}`.toLowerCase().trim()
-    )
-  );
-
-  const missing = STARTER_JOBS
-    .filter(job =>
-      !existing.has(
-        `${job.company}|${job.position}`.toLowerCase().trim()
-      )
-    )
-    .map(job => ({
-      ...job,
-      id: createJobId()
-    }));
-
-  const updated = [...jobs, ...missing];
-
-  if (writeJobs(updated)) {
-    jobs = updated;
-    localStorage.setItem(STARTER_IMPORT_KEY, "yes");
-  }
-}
+let jobs = savedJobs || [];
+let storageReady = savedJobs !== null;
 
 let currentTab = "active";
+let currentSort = "newest";
 let editingId = null;
 let pendingAction = null;
 
-// ----------------------------
-// HELPERS
-// ----------------------------
+/* ================================
+   HELPERS
+================================ */
 
 function createElement(tag, className = "", text = "") {
-  const element = document.createElement(tag);
+  const el = document.createElement(tag);
 
   if (className) {
-    element.className = className;
+    el.className = className;
   }
 
-  element.textContent = text;
-
-  return element;
+  el.textContent = text;
+  return el;
 }
 
-
-function formatDate(value) {
+function parseDate(value) {
   if (!value) {
-    return "Date not set";
+    return null;
   }
 
-  const parts = value.split("-").map(Number);
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+  if (!match) {
+    return null;
+  }
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+
+  const date = new Date(Date.UTC(year, month - 1, day));
 
   if (
-    parts.length !== 3 ||
-    !parts[0] ||
-    !parts[1] ||
-    !parts[2]
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
   ) {
-    return value;
+    return null;
   }
 
-  const date = new Date(
-    Date.UTC(parts[0], parts[1] - 1, parts[2])
-  );
+  return date;
+}
+
+/* FORMAT DATE WITH WEEKDAY */
+
+function formatDate(value) {
+  const date = parseDate(value);
+
+  if (!date) {
+    return value || "Date not set";
+  }
 
   return date.toLocaleDateString("en-GB", {
     weekday: "short",
@@ -177,18 +82,81 @@ function formatDate(value) {
   });
 }
 
+/* TODAY IN LOCAL TIME */
 
 function todayLocal() {
   const now = new Date();
 
   const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const day = String(now.getDate()).padStart(2, "0");
+
+  const month = String(
+    now.getMonth() + 1
+  ).padStart(2, "0");
+
+  const day = String(
+    now.getDate()
+  ).padStart(2, "0");
 
   return `${year}-${month}-${day}`;
 }
 
+/* ================================
+   DAYS SINCE APPLIED
+================================ */
+
+function getDaysSinceApplied(value) {
+  const appliedDate = parseDate(value);
+
+  if (!appliedDate) {
+    return null;
+  }
+
+  const today = parseDate(todayLocal());
+
+  const difference = today.getTime() -
+    appliedDate.getTime();
+
+  return Math.round(
+    difference / (1000 * 60 * 60 * 24)
+  );
+}
+
+function formatDaysSinceApplied(value) {
+  const days = getDaysSinceApplied(value);
+
+  if (days === null) {
+    return "No date";
+  }
+
+  if (days < 0) {
+    const remaining = Math.abs(days);
+
+    return remaining === 1
+      ? "In 1 day"
+      : `In ${remaining} days`;
+  }
+
+  if (days === 0) {
+    return "Today";
+  }
+
+  if (days === 1) {
+    return "Yesterday";
+  }
+
+  return `${days} days ago`;
+}
+
+/* ================================
+   STORAGE
+================================ */
+
 function persist(nextJobs) {
+  if (!storageReady) {
+    alert("Saved data is unavailable. Changes are disabled.");
+    return false;
+  }
+
   if (!writeJobs(nextJobs)) {
     return false;
   }
@@ -199,9 +167,9 @@ function persist(nextJobs) {
   return true;
 }
 
-// ----------------------------
-// FILTER APPLICATIONS
-// ----------------------------
+/* ================================
+   APPLICATION FILTERS
+================================ */
 
 function getActiveJobs() {
   return jobs.filter(job =>
@@ -221,14 +189,73 @@ function getCurrentJobs() {
     : getActiveJobs();
 }
 
-// ----------------------------
-// SWITCH TAB
-// ----------------------------
+/* ================================
+   SORT APPLICATIONS
+================================ */
+
+function sortJobs(input) {
+  const sorted = [...input];
+
+  sorted.sort((a, b) => {
+
+    // COMPANY A-Z
+    if (currentSort === "az") {
+      return a.company.localeCompare(
+        b.company,
+        "en",
+        { sensitivity: "base" }
+      );
+    }
+
+    const dateA = parseDate(a.applied)?.getTime() ?? null;
+    const dateB = parseDate(b.applied)?.getTime() ?? null;
+
+    // Missing dates always go last.
+    if (dateA === null && dateB !== null) return 1;
+    if (dateB === null && dateA !== null) return -1;
+
+    if (dateA === null && dateB === null) {
+      return 0;
+    }
+
+    // OLDEST FIRST
+    if (currentSort === "oldest") {
+      return dateA - dateB;
+    }
+
+    // NEWEST FIRST (DEFAULT)
+    return dateB - dateA;
+  });
+
+  return sorted;
+}
+
+/* ================================
+   UPDATE STATISTICS
+================================ */
+
+function updateStats() {
+  const active = getActiveJobs();
+  const history = getHistoryJobs();
+
+  const interviews = active.filter(job =>
+    job.status === "Interview"
+  );
+
+  $("statActive").textContent = active.length;
+  $("statInterview").textContent = interviews.length;
+  $("statHistory").textContent = history.length;
+
+  $("activeCount").textContent = active.length;
+  $("historyCount").textContent = history.length;
+}
+
+/* ================================
+   TABS
+================================ */
 
 function switchTab(tab) {
   currentTab = tab;
-
-  $("search").value = "";
 
   $("activeTab").classList.toggle(
     "active",
@@ -250,40 +277,30 @@ function switchTab(tab) {
     String(tab === "history")
   );
 
-  if (tab === "active") {
-    $("listTitle").textContent = "Your applications";
-
-    $("listDescription").textContent =
-      "Applications you're currently tracking.";
-  } else {
-    $("listTitle").textContent = "Application history";
-
-    $("listDescription").textContent =
-      "Your previous applications and outcomes.";
-  }
+  $("search").value = "";
 
   render();
 }
 
-// ----------------------------
-// RENDER
-// ----------------------------
+/* ================================
+   RENDER APPLICATIONS
+================================ */
 
 function render() {
-  const activeJobs = getActiveJobs();
-  const historyJobs = getHistoryJobs();
+  updateStats();
 
-  $("activeCount").textContent = activeJobs.length;
-  $("historyCount").textContent = historyJobs.length;
+  const list = $("list");
+  list.replaceChildren();
 
-  const query = $("search").value
+  const query = $("search")
+    .value
     .trim()
     .toLowerCase();
 
   const currentJobs = getCurrentJobs();
 
-  const visibleJobs = currentJobs.filter(job => {
-    const searchable = [
+  const filtered = currentJobs.filter(job => {
+    const text = [
       job.company,
       job.position,
       job.platform,
@@ -291,78 +308,128 @@ function render() {
       job.notes
     ].join(" ").toLowerCase();
 
-    return searchable.includes(query);
+    return text.includes(query);
   });
 
-  const list = $("list");
-  list.replaceChildren();
+  const sorted = sortJobs(filtered);
 
-  if (visibleJobs.length === 0) {
+  if (sorted.length === 0) {
     renderEmpty(list, currentJobs.length, query);
     return;
   }
 
-  // Latest applications first
-  const sortedJobs = [...visibleJobs].sort((a, b) => {
-    return (b.applied || "").localeCompare(a.applied || "");
-  });
-
-  sortedJobs.forEach(job => {
+  sorted.forEach(job => {
     list.appendChild(createJobCard(job));
   });
 }
 
-// ----------------------------
-// APPLICATION CARD
-// ----------------------------
+/* ================================
+   JOB CARD
+================================ */
 
 function createJobCard(job) {
-  const button = createElement("button", "job");
-  button.type = "button";
+  const button = createElement(
+    "button",
+    "job-card"
+  );
 
+  button.type = "button";
   button.setAttribute(
     "aria-label",
     `Edit ${job.company} application`
   );
 
-  const left = createElement("div", "job-info");
+  // TOP
+  const top = createElement("div", "job-top");
+
+  const main = createElement("div", "job-main");
 
   const company = createElement(
-    "span",
-    "company",
+    "div",
+    "job-company",
     job.company
   );
 
   const position = createElement(
-    "span",
-    "role",
+    "div",
+    "job-position",
     job.position
   );
 
-  const meta = createElement(
-    "span",
-    "meta",
-    `${job.platform} · ${formatDate(job.applied)}`
-  );
+  main.append(company, position);
 
-  left.append(company, position, meta);
-
-  const right = createElement("div", "job-end");
+  const right = createElement("div", "job-right");
 
   const statusClass = job.status
     .toLowerCase()
     .replace(/\s+/g, "-");
 
-  const status = createElement(
+  const badge = createElement(
     "span",
-    `status ${statusClass}`,
+    `status-badge status-${statusClass}`,
     job.status
   );
 
-  const arrow = createElement("span", "arrow", "›");
+  const chevron = createElement(
+    "span",
+    "job-chevron",
+    "›"
+  );
 
-  right.append(status, arrow);
-  button.append(left, right);
+  right.append(badge, chevron);
+  top.append(main, right);
+
+  // BOTTOM
+  const bottom = createElement(
+    "div",
+    "job-bottom"
+  );
+
+  const meta = createElement(
+    "div",
+    "job-meta"
+  );
+
+  const platform = createElement(
+    "span",
+    "",
+    job.platform || "Other"
+  );
+
+  const separator = createElement(
+    "span",
+    "meta-separator",
+    "·"
+  );
+
+  const date = createElement(
+    "span",
+    "",
+    formatDate(job.applied)
+  );
+
+  meta.append(platform, separator, date);
+
+  const age = createElement(
+    "div",
+    "job-age"
+  );
+
+  const dot = createElement(
+    "span",
+    "age-dot"
+  );
+
+  const ageText = createElement(
+    "span",
+    "",
+    formatDaysSinceApplied(job.applied)
+  );
+
+  age.append(dot, ageText);
+
+  bottom.append(meta, age);
+  button.append(top, bottom);
 
   button.addEventListener("click", () => {
     openEditor(job);
@@ -371,57 +438,83 @@ function createJobCard(job) {
   return button;
 }
 
-// ----------------------------
-// EMPTY STATE
-// ----------------------------
+/* ================================
+   EMPTY STATE
+================================ */
 
 function renderEmpty(list, total, query) {
-  const empty = createElement("div", "empty");
+  const wrapper = createElement(
+    "div",
+    "empty-state"
+  );
 
   const icon = createElement(
     "div",
     "empty-icon",
-    currentTab === "history" ? "↺" : "✧"
+    currentTab === "history" ? "↺" : "✦"
   );
 
-  const title = createElement("strong");
-
+  const title = createElement("h3");
   const description = createElement("p");
 
   if (query && total > 0) {
-    title.textContent = "No matching applications.";
-    description.textContent = "Try another search.";
+    title.textContent = "No applications found";
+    description.textContent =
+      "Try searching with another keyword.";
 
   } else if (currentTab === "history") {
-    title.textContent = "No history yet.";
+    title.textContent = "No history yet";
     description.textContent =
       "Rejected and closed applications will appear here.";
 
   } else {
-    title.textContent = "All caught up.";
+    title.textContent = "Your journey starts here";
     description.textContent =
-      "Add your first job application to get started.";
+      "Add your first application to get started.";
   }
 
-  empty.append(icon, title, description);
-  list.appendChild(empty);
+  wrapper.append(icon, title, description);
+  list.appendChild(wrapper);
 }
 
-// ----------------------------
-// OPEN ADD / EDIT POPUP
-// ----------------------------
+/* ================================
+   ADD / EDIT MODAL
+================================ */
 
 function openEditor(job = null) {
+  if (!storageReady) {
+    alert("Cannot edit while saved data is unavailable.");
+    return;
+  }
+
   editingId = job ? job.id : null;
 
   $("modalTitle").textContent = job
     ? "Edit application"
     : "New application";
 
-  $("company").value = job?.company || "";
-  $("position").value = job?.position || "";
-  $("applied").value = job?.applied || todayLocal();
-  $("platform").value = job?.platform || "JobStreet";
+  $("saveBtn").textContent = job
+    ? "Save changes"
+    : "Save application";
+
+  $("company").value = job?.company ?? "";
+  $("position").value = job?.position ?? "";
+
+  // Existing records with no date stay blank.
+  $("applied").value = job
+    ? job.applied
+    : todayLocal();
+
+  const platform = job?.platform || "JobStreet";
+
+  const platformExists = Array.from(
+    $("platform").options
+  ).some(option => option.value === platform);
+
+  $("platform").value = platformExists
+    ? platform
+    : "Other";
+
   $("status").value = job?.status || "Pending";
   $("notes").value = job?.notes || "";
 
@@ -434,10 +527,6 @@ function openEditor(job = null) {
   $("company").focus();
 }
 
-// ----------------------------
-// CLOSE POPUP
-// ----------------------------
-
 function closeEditor() {
   $("editorOverlay").classList.add("hidden");
 
@@ -449,18 +538,14 @@ function closeEditor() {
 function updateStatusHelp() {
   const status = $("status").value;
 
-  if (isHistoryStatus(status)) {
-    $("statusHelp").textContent =
-      "This application will be saved under History.";
-  } else {
-    $("statusHelp").textContent =
-      "This application will be shown under Active.";
-  }
+  $("statusHelp").textContent = isHistoryStatus(status)
+    ? "This application will appear under History."
+    : "This application will appear under Active.";
 }
 
-// ----------------------------
-// SAVE APPLICATION
-// ----------------------------
+/* ================================
+   SAVE APPLICATION
+================================ */
 
 function saveApplication(event) {
   event.preventDefault();
@@ -478,8 +563,8 @@ function saveApplication(event) {
 
   const data = {
     id: editingId || createJobId(),
-    company: company,
-    position: position,
+    company,
+    position,
     applied: $("applied").value,
     platform: $("platform").value,
     status: $("status").value,
@@ -496,31 +581,35 @@ function saveApplication(event) {
     return;
   }
 
-  const movedToHistory = (
-    isHistoryStatus(data.status) &&
-    !isHistoryStatus(oldJob?.status)
-  );
+  const wasHistory = oldJob
+    ? isHistoryStatus(oldJob.status)
+    : false;
 
-  const movedToActive = (
-    !isHistoryStatus(data.status) &&
-    isHistoryStatus(oldJob?.status)
-  );
+  const nowHistory = isHistoryStatus(data.status);
 
   closeEditor();
 
-  // Automatically show the correct tab
-  if (movedToHistory) {
+  // Move to the corresponding view on change.
+  if (wasHistory !== nowHistory) {
+    switchTab(nowHistory ? "history" : "active");
+  }
+
+  // New History application
+  if (!oldJob && nowHistory) {
     switchTab("history");
-  } else if (movedToActive) {
-    switchTab("active");
   }
 }
 
-// ----------------------------
-// BACKUP
-// ----------------------------
+/* ================================
+   BACKUP JSON
+================================ */
 
 function backupData() {
+  if (!storageReady) {
+    alert("Unable to back up unreadable saved data.");
+    return;
+  }
+
   const backup = {
     app: "JobTrack",
     version: 2,
@@ -536,10 +625,9 @@ function backupData() {
   const url = URL.createObjectURL(blob);
 
   const link = document.createElement("a");
-  link.href = url;
 
-  link.download =
-    `jobtrack-backup-${todayLocal()}.json`;
+  link.href = url;
+  link.download = `jobtrack-backup-${todayLocal()}.json`;
 
   document.body.appendChild(link);
   link.click();
@@ -550,15 +638,14 @@ function backupData() {
   }, 1000);
 }
 
-// ----------------------------
-// CONFIRMATION POPUP
-// ----------------------------
+/* ================================
+   CONFIRMATION MODAL
+================================ */
 
-function openConfirm(message, action) {
-  pendingAction = action;
+function openConfirm(message, callback) {
+  pendingAction = callback;
 
   $("confirmText").textContent = message;
-
   $("confirmOverlay").classList.remove("hidden");
 
   $("cancelConfirm").focus();
@@ -569,9 +656,9 @@ function closeConfirm() {
   pendingAction = null;
 }
 
-// ----------------------------
-// RESTORE
-// ----------------------------
+/* ================================
+   RESTORE BACKUP
+================================ */
 
 async function restoreData(event) {
   const file = event.target.files?.[0];
@@ -592,30 +679,38 @@ async function restoreData(event) {
 
     openConfirm(
       `Restore ${restoredJobs.length} applications? ` +
-      `This will replace your current ${jobs.length} ` +
-      `applications, including Active and History.`,
+      `This will replace all current Active and History records.`,
       () => {
-        if (persist(restoredJobs)) {
-          switchTab("active");
+        if (!writeJobs(restoredJobs)) {
+          return;
         }
+
+        storageReady = true;
+        jobs = restoredJobs;
+        switchTab("active");
       }
     );
 
   } catch (error) {
-    console.error(error);
+    console.error("Restore failed:", error);
 
     alert(
-      "Invalid backup file. " +
-      "Please select a valid JobTrack JSON backup."
+      "Invalid backup file. Please select a valid " +
+      "JobTrack JSON backup."
     );
   }
 
   event.target.value = "";
 }
 
-// ----------------------------
-// EVENT LISTENERS
-// ----------------------------
+/* ================================
+   EVENT LISTENERS
+================================ */
+
+// Add application
+$("addBtn").addEventListener("click", () => {
+  openEditor();
+});
 
 // Tabs
 $("activeTab").addEventListener("click", () => {
@@ -626,29 +721,35 @@ $("historyTab").addEventListener("click", () => {
   switchTab("history");
 });
 
-// Add application
-$("addBtn").addEventListener("click", () => {
-  openEditor();
+// Search
+$("search").addEventListener("input", render);
+
+// Sorting
+$("sortSelect").addEventListener("change", event => {
+  currentSort = event.target.value;
+  render();
 });
 
-// Save application
+// Save
 $("jobForm").addEventListener(
   "submit",
   saveApplication
 );
 
-// Status description
+// Status helper
 $("status").addEventListener(
   "change",
   updateStatusHelp
 );
 
-// Close editor
-document.querySelectorAll("[data-close]").forEach(button => {
-  button.addEventListener("click", closeEditor);
-});
+// Close modal buttons
+document.querySelectorAll("[data-close]").forEach(
+  button => {
+    button.addEventListener("click", closeEditor);
+  }
+);
 
-// Click outside popup
+// Click outside editor
 $("editorOverlay").addEventListener("click", event => {
   if (event.target === $("editorOverlay")) {
     closeEditor();
@@ -663,16 +764,17 @@ document.addEventListener("keydown", event => {
 
   if (!$("confirmOverlay").classList.contains("hidden")) {
     closeConfirm();
+
   } else if (!$("editorOverlay").classList.contains("hidden")) {
     closeEditor();
   }
 });
 
-// Search
-$("search").addEventListener("input", render);
-
 // Backup
-$("backupBtn").addEventListener("click", backupData);
+$("backupBtn").addEventListener(
+  "click",
+  backupData
+);
 
 // Restore
 $("restoreBtn").addEventListener("click", () => {
@@ -685,7 +787,7 @@ $("restoreFile").addEventListener(
   restoreData
 );
 
-// Confirmation
+// Restore confirmation
 $("cancelConfirm").addEventListener(
   "click",
   closeConfirm
@@ -701,8 +803,15 @@ $("confirmAction").addEventListener("click", () => {
   }
 });
 
-// ----------------------------
-// INITIAL LOAD
-// ----------------------------
+/* ================================
+   INITIALIZE
+================================ */
 
 switchTab("active");
+
+// Refresh day counts when user returns to the tab.
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    render();
+  }
+});

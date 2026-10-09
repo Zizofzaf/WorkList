@@ -1,92 +1,581 @@
-    'use strict';
-    const $ = id => document.getElementById(id);
-    let jobs = readJobs();
-    let editingId = null;
-    let pendingAction = null;
-    function persist(next) {
-      try { localStorage.setItem(KEY, JSON.stringify(next)); jobs = next; render(); return true; }
-      catch { alert('Could not save. Check browser storage settings or available space.'); return false; }
+
+"use strict";
+
+const $ = id => document.getElementById(id);
+
+// Application state
+let jobs = readJobs();
+let currentTab = "active";
+let editingId = null;
+let pendingAction = null;
+
+// ----------------------------
+// HELPERS
+// ----------------------------
+
+function createElement(tag, className = "", text = "") {
+  const element = document.createElement(tag);
+
+  if (className) {
+    element.className = className;
+  }
+
+  element.textContent = text;
+
+  return element;
+}
+
+function formatDate(value) {
+  if (!value) {
+    return "Date not set";
+  }
+
+  const parts = value.split("-").map(Number);
+
+  if (
+    parts.length !== 3 ||
+    !parts[0] ||
+    !parts[1] ||
+    !parts[2]
+  ) {
+    return value;
+  }
+
+  return new Date(
+    Date.UTC(parts[0], parts[1] - 1, parts[2])
+  ).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+}
+
+function todayLocal() {
+  const now = new Date();
+
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+function persist(nextJobs) {
+  if (!writeJobs(nextJobs)) {
+    return false;
+  }
+
+  jobs = nextJobs;
+  render();
+
+  return true;
+}
+
+// ----------------------------
+// FILTER APPLICATIONS
+// ----------------------------
+
+function getActiveJobs() {
+  return jobs.filter(job =>
+    !isHistoryStatus(job.status)
+  );
+}
+
+function getHistoryJobs() {
+  return jobs.filter(job =>
+    isHistoryStatus(job.status)
+  );
+}
+
+function getCurrentJobs() {
+  return currentTab === "history"
+    ? getHistoryJobs()
+    : getActiveJobs();
+}
+
+// ----------------------------
+// SWITCH TAB
+// ----------------------------
+
+function switchTab(tab) {
+  currentTab = tab;
+
+  $("search").value = "";
+
+  $("activeTab").classList.toggle(
+    "active",
+    tab === "active"
+  );
+
+  $("historyTab").classList.toggle(
+    "active",
+    tab === "history"
+  );
+
+  $("activeTab").setAttribute(
+    "aria-pressed",
+    String(tab === "active")
+  );
+
+  $("historyTab").setAttribute(
+    "aria-pressed",
+    String(tab === "history")
+  );
+
+  if (tab === "active") {
+    $("listTitle").textContent = "Your applications";
+
+    $("listDescription").textContent =
+      "Applications you're currently tracking.";
+  } else {
+    $("listTitle").textContent = "Application history";
+
+    $("listDescription").textContent =
+      "Your previous applications and outcomes.";
+  }
+
+  render();
+}
+
+// ----------------------------
+// RENDER
+// ----------------------------
+
+function render() {
+  const activeJobs = getActiveJobs();
+  const historyJobs = getHistoryJobs();
+
+  $("activeCount").textContent = activeJobs.length;
+  $("historyCount").textContent = historyJobs.length;
+
+  const query = $("search").value
+    .trim()
+    .toLowerCase();
+
+  const currentJobs = getCurrentJobs();
+
+  const visibleJobs = currentJobs.filter(job => {
+    const searchable = [
+      job.company,
+      job.position,
+      job.platform,
+      job.status,
+      job.notes
+    ].join(" ").toLowerCase();
+
+    return searchable.includes(query);
+  });
+
+  const list = $("list");
+  list.replaceChildren();
+
+  if (visibleJobs.length === 0) {
+    renderEmpty(list, currentJobs.length, query);
+    return;
+  }
+
+  // Latest applications first
+  const sortedJobs = [...visibleJobs].sort((a, b) => {
+    return (b.applied || "").localeCompare(a.applied || "");
+  });
+
+  sortedJobs.forEach(job => {
+    list.appendChild(createJobCard(job));
+  });
+}
+
+// ----------------------------
+// APPLICATION CARD
+// ----------------------------
+
+function createJobCard(job) {
+  const button = createElement("button", "job");
+  button.type = "button";
+
+  button.setAttribute(
+    "aria-label",
+    `Edit ${job.company} application`
+  );
+
+  const left = createElement("div", "job-info");
+
+  const company = createElement(
+    "span",
+    "company",
+    job.company
+  );
+
+  const position = createElement(
+    "span",
+    "role",
+    job.position
+  );
+
+  const meta = createElement(
+    "span",
+    "meta",
+    `${job.platform} · ${formatDate(job.applied)}`
+  );
+
+  left.append(company, position, meta);
+
+  const right = createElement("div", "job-end");
+
+  const statusClass = job.status
+    .toLowerCase()
+    .replace(/\s+/g, "-");
+
+  const status = createElement(
+    "span",
+    `status ${statusClass}`,
+    job.status
+  );
+
+  const arrow = createElement("span", "arrow", "›");
+
+  right.append(status, arrow);
+  button.append(left, right);
+
+  button.addEventListener("click", () => {
+    openEditor(job);
+  });
+
+  return button;
+}
+
+// ----------------------------
+// EMPTY STATE
+// ----------------------------
+
+function renderEmpty(list, total, query) {
+  const empty = createElement("div", "empty");
+
+  const icon = createElement(
+    "div",
+    "empty-icon",
+    currentTab === "history" ? "↺" : "✧"
+  );
+
+  const title = createElement("strong");
+
+  const description = createElement("p");
+
+  if (query && total > 0) {
+    title.textContent = "No matching applications.";
+    description.textContent = "Try another search.";
+
+  } else if (currentTab === "history") {
+    title.textContent = "No history yet.";
+    description.textContent =
+      "Rejected and closed applications will appear here.";
+
+  } else {
+    title.textContent = "All caught up.";
+    description.textContent =
+      "Add your first job application to get started.";
+  }
+
+  empty.append(icon, title, description);
+  list.appendChild(empty);
+}
+
+// ----------------------------
+// OPEN ADD / EDIT POPUP
+// ----------------------------
+
+function openEditor(job = null) {
+  editingId = job ? job.id : null;
+
+  $("modalTitle").textContent = job
+    ? "Edit application"
+    : "New application";
+
+  $("company").value = job?.company || "";
+  $("position").value = job?.position || "";
+  $("applied").value = job?.applied || todayLocal();
+  $("platform").value = job?.platform || "JobStreet";
+  $("status").value = job?.status || "Pending";
+  $("notes").value = job?.notes || "";
+
+  updateStatusHelp();
+
+  $("editorOverlay").classList.remove("hidden");
+
+  document.body.style.overflow = "hidden";
+
+  $("company").focus();
+}
+
+// ----------------------------
+// CLOSE POPUP
+// ----------------------------
+
+function closeEditor() {
+  $("editorOverlay").classList.add("hidden");
+
+  document.body.style.overflow = "";
+
+  editingId = null;
+}
+
+function updateStatusHelp() {
+  const status = $("status").value;
+
+  if (isHistoryStatus(status)) {
+    $("statusHelp").textContent =
+      "This application will be saved under History.";
+  } else {
+    $("statusHelp").textContent =
+      "This application will be shown under Active.";
+  }
+}
+
+// ----------------------------
+// SAVE APPLICATION
+// ----------------------------
+
+function saveApplication(event) {
+  event.preventDefault();
+
+  const company = $("company").value.trim();
+  const position = $("position").value.trim();
+
+  if (!company || !position) {
+    return;
+  }
+
+  const oldJob = editingId
+    ? jobs.find(job => job.id === editingId)
+    : null;
+
+  const data = {
+    id: editingId || createJobId(),
+    company: company,
+    position: position,
+    applied: $("applied").value,
+    platform: $("platform").value,
+    status: $("status").value,
+    notes: $("notes").value.trim()
+  };
+
+  const nextJobs = editingId
+    ? jobs.map(job =>
+        job.id === editingId ? data : job
+      )
+    : [...jobs, data];
+
+  if (!persist(nextJobs)) {
+    return;
+  }
+
+  const movedToHistory = (
+    isHistoryStatus(data.status) &&
+    !isHistoryStatus(oldJob?.status)
+  );
+
+  const movedToActive = (
+    !isHistoryStatus(data.status) &&
+    isHistoryStatus(oldJob?.status)
+  );
+
+  closeEditor();
+
+  // Automatically show the correct tab
+  if (movedToHistory) {
+    switchTab("history");
+  } else if (movedToActive) {
+    switchTab("active");
+  }
+}
+
+// ----------------------------
+// BACKUP
+// ----------------------------
+
+function backupData() {
+  const backup = {
+    app: "JobTrack",
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    applications: jobs
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(backup, null, 2)],
+    { type: "application/json" }
+  );
+
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+
+  link.download =
+    `jobtrack-backup-${todayLocal()}.json`;
+
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+
+  setTimeout(() => {
+    URL.revokeObjectURL(url);
+  }, 1000);
+}
+
+// ----------------------------
+// CONFIRMATION POPUP
+// ----------------------------
+
+function openConfirm(message, action) {
+  pendingAction = action;
+
+  $("confirmText").textContent = message;
+
+  $("confirmOverlay").classList.remove("hidden");
+
+  $("cancelConfirm").focus();
+}
+
+function closeConfirm() {
+  $("confirmOverlay").classList.add("hidden");
+  pendingAction = null;
+}
+
+// ----------------------------
+// RESTORE
+// ----------------------------
+
+async function restoreData(event) {
+  const file = event.target.files?.[0];
+
+  if (!file) {
+    return;
+  }
+
+  try {
+    const content = await file.text();
+    const backup = JSON.parse(content);
+
+    if (!validateBackup(backup)) {
+      throw new Error("Invalid JobTrack backup");
     }
-    function formatDate(date) {
-      if (!date) return 'Date not set';
-      const parts = date.split('-').map(Number);
-      if (parts.length !== 3 || !parts[0] || !parts[1] || !parts[2]) return date;
-      return new Date(Date.UTC(parts[0],parts[1]-1,parts[2])).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',timeZone:'UTC'});
-    }
-    function textNode(tag, cls, value) {
-      const el = document.createElement(tag); if (cls) el.className=cls; el.textContent=value; return el;
-    }
-    function render() {
-      const q = $('search').value.trim().toLowerCase();
-      const visible = jobs.filter(j => (j.company+' '+j.position+' '+j.platform).toLowerCase().includes(q));
-      $('count').textContent = jobs.length;
-      const list = $('list'); list.replaceChildren();
-      if (!visible.length) {
-        const empty = textNode('div','empty','');
-        empty.append(textNode('div','empty-icon','✧'),textNode('strong','',jobs.length?'No matching applications.':'All caught up.'),textNode('p','',jobs.length?'Try another search.':'Add your first job application to get started.'));
-        list.append(empty); return;
+
+    const restoredJobs = backup.applications;
+
+    openConfirm(
+      `Restore ${restoredJobs.length} applications? ` +
+      `This will replace your current ${jobs.length} ` +
+      `applications, including Active and History.`,
+      () => {
+        if (persist(restoredJobs)) {
+          switchTab("active");
+        }
       }
-      for (const job of visible) {
-        const btn = textNode('button','job',''); btn.type='button'; btn.setAttribute('aria-label','Edit '+job.company+' application');
-        const left=textNode('div','','');
-        left.append(textNode('span','company',job.company),textNode('span','role',job.position),textNode('span','meta',job.platform+' · '+formatDate(job.applied)));
-        const right=textNode('div','job-end','');
-        const badge=textNode('span','status '+job.status.toLowerCase(),job.status);
-        right.append(badge,textNode('span','arrow','›'));
-        btn.append(left,right); btn.addEventListener('click',()=>openEditor(job)); list.append(btn);
-      }
-    }
-    function openEditor(job=null) {
-      editingId=job?job.id:null;
-      $('modalTitle').textContent=job?'Edit application':'New application';
-      $('company').value=job?.company||''; $('position').value=job?.position||'';
-      $('applied').value=job?.applied||new Date().toLocaleDateString('en-CA');
-      $('platform').value=job?.platform||'JobStreet'; $('status').value=job?.status||'Pending'; $('notes').value=job?.notes||'';
-      $('editorOverlay').classList.remove('hidden'); $('company').focus();
-    }
-    function closeEditor() { $('editorOverlay').classList.add('hidden'); }
-    function closeConfirm() { $('confirmOverlay').classList.add('hidden'); pendingAction=null; }
-    function requestDelete(action, reason) {
-      pendingAction=action;
-      $('confirmText').textContent=reason;
-      $('confirmOverlay').classList.remove('hidden'); $('cancelDelete').focus();
-    }
-    $('jobForm').addEventListener('submit',e=>{
-      e.preventDefault();
-      const data={
-        id:editingId|| (crypto.randomUUID?.() || String(Date.now())+'-'+Math.random()),
-        company:$('company').value.trim(),position:$('position').value.trim(),applied:$('applied').value,
-        platform:$('platform').value,status:$('status').value,notes:$('notes').value.trim()
-      };
-      if (!data.company||!data.position) return;
-      if (['Rejected','Job Closed'].includes(data.status)) {
-        requestDelete(()=>{ if (editingId && persist(jobs.filter(j=>j.id!==editingId))) closeEditor(); else if (!editingId) closeEditor(); },
-          `${data.company} — ${data.position} is marked ${data.status}. Delete it permanently?`);
-        return;
-      }
-      const next=editingId?jobs.map(j=>j.id===editingId?data:j):[...jobs,data];
-      if(persist(next)) closeEditor();
-    });
-    $('addBtn').addEventListener('click',()=>openEditor());
-    document.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',closeEditor));
-    $('editorOverlay').addEventListener('click',e=>{if(e.target===$('editorOverlay'))closeEditor();});
-    $('cancelDelete').addEventListener('click',closeConfirm);
-    $('confirmDelete').addEventListener('click',()=>{ const act=pendingAction; closeConfirm(); if(act)act(); });
-    document.addEventListener('keydown',e=>{if(e.key==='Escape'){if(!$('confirmOverlay').classList.contains('hidden'))closeConfirm();else closeEditor();}});
-    $('search').addEventListener('input',render);
-    $('backupBtn').addEventListener('click',()=>{
-      const blob=new Blob([JSON.stringify({app:'JobTrack',version:1,applications:jobs},null,2)],{type:'application/json'});
-      const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;
-      a.download='jobtrack-backup-'+new Date().toISOString().slice(0,10)+'.json'; a.click();
-      setTimeout(()=>URL.revokeObjectURL(url),1000);
-    });
-    $('restoreBtn').addEventListener('click',()=>{ $('restoreFile').value=''; $('restoreFile').click(); });
-    $('restoreFile').addEventListener('change',async e=>{
-      const file=e.target.files?.[0]; if(!file)return;
-      try {
-        const raw=JSON.parse(await file.text());
-        if(raw.app!=='JobTrack'||raw.version!==1||!Array.isArray(raw.applications)||!raw.applications.every(validJob)||new Set(raw.applications.map(j=>j.id)).size!==raw.applications.length)throw Error('Invalid JobTrack backup');
-        if(confirm(`Restore ${raw.applications.length} applications? This will REPLACE your current ${jobs.length} applications.`))persist(raw.applications);
-      } catch { alert('Invalid backup file. Please choose a JobTrack JSON backup.'); }
-    });
-    render();
+    );
+
+  } catch (error) {
+    console.error(error);
+
+    alert(
+      "Invalid backup file. " +
+      "Please select a valid JobTrack JSON backup."
+    );
+  }
+
+  event.target.value = "";
+}
+
+// ----------------------------
+// EVENT LISTENERS
+// ----------------------------
+
+// Tabs
+$("activeTab").addEventListener("click", () => {
+  switchTab("active");
+});
+
+$("historyTab").addEventListener("click", () => {
+  switchTab("history");
+});
+
+// Add application
+$("addBtn").addEventListener("click", () => {
+  openEditor();
+});
+
+// Save application
+$("jobForm").addEventListener(
+  "submit",
+  saveApplication
+);
+
+// Status description
+$("status").addEventListener(
+  "change",
+  updateStatusHelp
+);
+
+// Close editor
+document.querySelectorAll("[data-close]").forEach(button => {
+  button.addEventListener("click", closeEditor);
+});
+
+// Click outside popup
+$("editorOverlay").addEventListener("click", event => {
+  if (event.target === $("editorOverlay")) {
+    closeEditor();
+  }
+});
+
+// Escape key
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") {
+    return;
+  }
+
+  if (!$("confirmOverlay").classList.contains("hidden")) {
+    closeConfirm();
+  } else if (!$("editorOverlay").classList.contains("hidden")) {
+    closeEditor();
+  }
+});
+
+// Search
+$("search").addEventListener("input", render);
+
+// Backup
+$("backupBtn").addEventListener("click", backupData);
+
+// Restore
+$("restoreBtn").addEventListener("click", () => {
+  $("restoreFile").value = "";
+  $("restoreFile").click();
+});
+
+$("restoreFile").addEventListener(
+  "change",
+  restoreData
+);
+
+// Confirmation
+$("cancelConfirm").addEventListener(
+  "click",
+  closeConfirm
+);
+
+$("confirmAction").addEventListener("click", () => {
+  const action = pendingAction;
+
+  closeConfirm();
+
+  if (action) {
+    action();
+  }
+});
+
+// ----------------------------
+// INITIAL LOAD
+// ----------------------------
+
+switchTab("active");

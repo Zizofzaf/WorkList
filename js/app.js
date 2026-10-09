@@ -147,6 +147,7 @@ function createElement(tag, className = "", text = "") {
   return element;
 }
 
+
 function formatDate(value) {
   if (!value) {
     return "Date not set";
@@ -163,15 +164,19 @@ function formatDate(value) {
     return value;
   }
 
-  return new Date(
+  const date = new Date(
     Date.UTC(parts[0], parts[1] - 1, parts[2])
-  ).toLocaleDateString("en-GB", {
+  );
+
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
     day: "numeric",
     month: "short",
     year: "numeric",
     timeZone: "UTC"
   });
 }
+
 
 function todayLocal() {
   const now = new Date();

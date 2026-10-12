@@ -390,6 +390,48 @@
   </section>
 </div>
 
+
+<!-- DELETE CONFIRMATION POPUP -->
+<div class="overlay hidden" id="deleteOverlay">
+
+  <section class="modal small-modal"
+           role="alertdialog"
+           aria-modal="true"
+           aria-labelledby="deleteTitle">
+
+    <div class="modal-header">
+      <div>
+        <span class="modal-eyebrow">DELETE APPLICATION</span>
+        <h2 id="deleteTitle">Delete permanently?</h2>
+      </div>
+    </div>
+
+    <p class="modal-description" id="deleteMessage"></p>
+
+    <p class="delete-warning">
+      This action cannot be undone. The application
+      will be permanently removed from JobTrack.
+    </p>
+
+    <div class="modal-actions">
+      <button class="btn-secondary"
+              type="button"
+              id="cancelDelete">
+        Cancel
+      </button>
+
+      <button class="btn-danger"
+              type="button"
+              id="confirmDelete">
+        Yes, Delete
+      </button>
+    </div>
+
+  </section>
+
+</div>
+
+
 <script src="js/storage.js" defer></script>
 <script src="js/app.js" defer></script>
 

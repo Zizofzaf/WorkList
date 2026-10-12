@@ -146,6 +146,7 @@ let currentSort = "newest";
 let editingId = null;
 let applyingId = null;
 let pendingAction = null;
+let deletingId = null;
 
 /* =====================================
    HELPERS
@@ -665,6 +666,30 @@ function createJobCard(job) {
     actions.append(edit, applied);
     card.appendChild(actions);
   }
+  
+  // DELETE BUTTON — HISTORY ONLY
+  if (isHistoryStatus(job.status)) {
+    const actions = createElement(
+      "div",
+      "job-actions"
+    );
+
+    const deleteButton = createElement(
+      "button",
+      "btn-delete",
+      "Delete"
+    );
+
+    deleteButton.type = "button";
+
+    deleteButton.addEventListener("click", () => {
+      openDeleteModal(job);
+    });
+
+    actions.appendChild(deleteButton);
+    card.appendChild(actions);
+  }
+
 
   return card;
 }
@@ -967,6 +992,62 @@ function confirmApplied(event) {
 }
 
 /* =====================================
+   DELETE APPLICATION — HISTORY ONLY
+===================================== */
+
+function openDeleteModal(job) {
+  if (!storageReady) {
+    alert("Saved data is unavailable.");
+    return;
+  }
+
+  // Safety: Only History applications can be deleted.
+  if (!isHistoryStatus(job.status)) {
+    return;
+  }
+
+  deletingId = job.id;
+
+  $("deleteMessage").textContent =
+    `Are you sure you want to delete ${job.company} — ` +
+    `${job.position}?`;
+
+  openOverlay("deleteOverlay");
+}
+
+function closeDeleteModal() {
+  closeOverlay("deleteOverlay");
+  deletingId = null;
+}
+
+function confirmDeleteApplication() {
+  if (!deletingId) {
+    return;
+  }
+
+  const job = jobs.find(item =>
+    item.id === deletingId
+  );
+
+  // Double-check before deleting.
+  if (!job || !isHistoryStatus(job.status)) {
+    closeDeleteModal();
+    return;
+  }
+
+  const updatedJobs = jobs.filter(item =>
+    item.id !== deletingId
+  );
+
+  // Delete only if localStorage save succeeds.
+  if (!persist(updatedJobs)) {
+    return;
+  }
+
+  closeDeleteModal();
+}
+
+/* =====================================
    BACKUP
 ===================================== */
 
@@ -1152,20 +1233,29 @@ $("appliedOverlay").addEventListener("click", event => {
   }
 });
 
-// Escape key
+
+ // Escape key
 document.addEventListener("keydown", event => {
   if (event.key !== "Escape") return;
 
-  if (!$("confirmOverlay").classList.contains("hidden")) {
+  // Delete confirmation
+  if (!$("deleteOverlay").classList.contains("hidden")) {
+    closeDeleteModal();
+
+  // Restore confirmation
+  } else if (!$("confirmOverlay").classList.contains("hidden")) {
     closeConfirm();
 
+  // Mark as Applied
   } else if (!$("appliedOverlay").classList.contains("hidden")) {
     closeAppliedModal();
 
+  // Add / Edit application
   } else if (!$("editorOverlay").classList.contains("hidden")) {
     closeEditor();
   }
 });
+
 
 // Backup
 $("backupBtn").addEventListener(
@@ -1199,6 +1289,22 @@ $("confirmAction").addEventListener("click", () => {
     action();
   }
 });
+
+// HISTORY DELETE EVENTS
+$("cancelDelete").addEventListener("click", () => {
+  closeDeleteModal();
+});
+
+$("confirmDelete").addEventListener("click", () => {
+  confirmDeleteApplication();
+});
+
+$("deleteOverlay").addEventListener("click", event => {
+  if (event.target === $("deleteOverlay")) {
+    closeDeleteModal();
+  }
+});
+
 
 /* =====================================
    INITIALIZATION

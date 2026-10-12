@@ -1,7 +1,7 @@
 
-/* ================================
-   JOBTRACK V2 — DESIGN SYSTEM
-================================ */
+/* =====================================
+   JOBTRACK V3 — DESIGN SYSTEM
+===================================== */
 
 :root {
   --bg: #f8f9fc;
@@ -12,7 +12,7 @@
   --purple-hover: #5743d9;
   --purple-light: #f0edff;
   --border: #e9eaf1;
-  --shadow: 0 6px 28px rgba(31, 34, 72, .035);
+  --shadow: 0 6px 28px rgba(31,34,72,.035);
   --radius: 16px;
 }
 
@@ -33,10 +33,11 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-button,
-input,
-select,
-textarea {
+body.modal-open {
+  overflow: hidden;
+}
+
+button, input, select, textarea {
   font: inherit;
 }
 
@@ -49,16 +50,16 @@ input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--purple);
-  outline-offset: 3px;
+  outline-offset: 2px;
 }
 
 .hidden {
   display: none !important;
 }
 
-/* ================================
+/* =====================================
    LAYOUT
-================================ */
+===================================== */
 
 .app-container {
   max-width: 1120px;
@@ -76,16 +77,16 @@ main {
   flex: 1;
 }
 
-/* ================================
+/* =====================================
    HEADER
-================================ */
+===================================== */
 
 .header {
   height: 84px;
   border-bottom: 1px solid var(--border);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
 }
 
 .brand {
@@ -98,18 +99,18 @@ main {
 }
 
 .brand-icon {
-  width: 38px;
   height: 38px;
+  width: 38px;
+  background: #28263d;
+  color: white;
+  border-radius: 12px;
   display: grid;
   place-items: center;
-  background: #28263d;
-  color: #ffffff;
-  border-radius: 12px;
 }
 
 .brand-icon svg {
-  width: 21px;
   height: 21px;
+  width: 21px;
 }
 
 .accent {
@@ -125,15 +126,15 @@ main {
 }
 
 .status-indicator {
-  height: 8px;
   width: 8px;
-  border-radius: 50%;
+  height: 8px;
   background: #7acaa2;
+  border-radius: 50%;
 }
 
-/* ================================
+/* =====================================
    HERO
-================================ */
+===================================== */
 
 .hero {
   padding-top: 75px;
@@ -150,7 +151,6 @@ main {
 }
 
 .eyebrow-line {
-  display: block;
   height: 2px;
   width: 21px;
   background: var(--purple);
@@ -158,7 +158,7 @@ main {
 
 .hero h1 {
   margin: 22px 0 12px;
-  font-size: clamp(38px, 5vw, 56px);
+  font-size: clamp(38px,5vw,56px);
   line-height: 1.12;
   letter-spacing: -2.8px;
   font-weight: 800;
@@ -169,20 +169,20 @@ main {
 }
 
 .hero-description {
-  font-size: 14px;
   color: var(--muted);
+  font-size: 14px;
   margin: 0;
 }
 
-/* ================================
+/* =====================================
    STATS
-================================ */
+===================================== */
 
 .stats {
-  margin-top: 40px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3,minmax(0,1fr));
   gap: 15px;
+  margin-top: 40px;
 }
 
 .stat-card {
@@ -210,18 +210,17 @@ main {
 .stat-bottom strong {
   font-size: 31px;
   font-weight: 800;
-  letter-spacing: -1.3px;
   line-height: 1;
+  letter-spacing: -1.3px;
 }
 
 .stat-icon {
   display: grid;
   place-items: center;
-  width: 31px;
   height: 31px;
+  width: 31px;
   border-radius: 10px;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 18px;
 }
 
 .stat-purple {
@@ -229,9 +228,9 @@ main {
   color: var(--purple);
 }
 
-.stat-orange {
-  background: #fff1e6;
-  color: #e69a43;
+.stat-blue {
+  background: #eaf3ff;
+  color: #4585cd;
 }
 
 .stat-gray {
@@ -239,9 +238,9 @@ main {
   color: #9295aa;
 }
 
-/* ================================
-   APPLICATIONS
-================================ */
+/* =====================================
+   APPLICATION SECTION
+===================================== */
 
 .applications-section {
   margin-top: 66px;
@@ -263,39 +262,36 @@ main {
 }
 
 .section-header p {
-  color: var(--muted);
   margin: 7px 0 0;
+  color: var(--muted);
   font-size: 12px;
 }
 
-/* ================================
+/* =====================================
    BUTTONS
-================================ */
+===================================== */
 
 .btn-primary {
+  border: 1px solid var(--purple);
   background: var(--purple);
   color: white;
-  border: 1px solid var(--purple);
-  border-radius: 11px;
   padding: 13px 18px;
+  border-radius: 11px;
   font-size: 12px;
   font-weight: 800;
   white-space: nowrap;
-  transition: background .2s,
-    transform .2s, box-shadow .2s;
+  transition: .2s;
 }
 
 .btn-primary:hover {
   background: var(--purple-hover);
-  box-shadow: 0 8px 18px rgba(105, 85, 239, .16);
+  box-shadow: 0 8px 18px rgba(105,85,239,.16);
   transform: translateY(-1px);
 }
 
 .plus-icon {
   font-size: 17px;
-  line-height: 0;
   margin-right: 5px;
-  vertical-align: -1px;
 }
 
 .btn-secondary {
@@ -312,30 +308,46 @@ main {
   background: #f7f7fb;
 }
 
-/* ================================
+.btn-applied {
+  background: #f3f0ff;
+  color: var(--purple);
+  border: 1px solid #e6dfff;
+  border-radius: 9px;
+  padding: 10px 15px;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.btn-applied:hover {
+  background: #eae4ff;
+}
+
+/* =====================================
    TABS
-================================ */
+===================================== */
 
 .tabs {
   display: flex;
+  gap: 7px;
   border-bottom: 1px solid var(--border);
   margin-top: 28px;
-  gap: 7px;
+  overflow-x: auto;
 }
 
 .tab {
-  padding: 16px 19px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  background: transparent;
   display: flex;
   align-items: center;
   gap: 9px;
+  padding: 16px 19px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  margin-bottom: -1px;
   font-size: 13px;
   font-weight: 700;
   color: var(--muted);
-  transition: .15s;
+  white-space: nowrap;
 }
 
 .tab:hover,
@@ -348,10 +360,9 @@ main {
 }
 
 .tab-count {
-  display: inline-block;
-  padding: 3px 8px;
   background: #eceef5;
   color: #85899f;
+  padding: 3px 8px;
   border-radius: 7px;
   font-size: 10px;
   font-weight: 800;
@@ -362,14 +373,14 @@ main {
   color: var(--purple);
 }
 
-/* ================================
+/* =====================================
    SEARCH AND SORT
-================================ */
+===================================== */
 
 .toolbar {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   gap: 14px;
   margin: 24px 0 19px;
 }
@@ -392,20 +403,14 @@ main {
 }
 
 .search-wrapper input {
-  height: 43px;
   width: 100%;
+  height: 43px;
   padding: 0 15px 0 42px;
-  border: 1px solid var(--border);
   background: white;
-  color: var(--text);
+  border: 1px solid var(--border);
   border-radius: 11px;
-  outline: none;
+  color: var(--text);
   font-size: 12px;
-}
-
-.search-wrapper input:focus {
-  border-color: #bcb4ff;
-  box-shadow: 0 0 0 3px #6955ef12;
 }
 
 .search-wrapper input::placeholder {
@@ -430,18 +435,16 @@ main {
   min-width: 155px;
   padding: 0 11px;
   background: white;
-  color: var(--text);
   border: 1px solid var(--border);
   border-radius: 11px;
-  outline: none;
   font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
+  color: var(--text);
 }
 
-/* ================================
-   APPLICATION CARDS
-================================ */
+/* =====================================
+   JOB CARDS
+===================================== */
 
 .job-list {
   display: grid;
@@ -449,34 +452,29 @@ main {
 }
 
 .job-card {
-  display: block;
-  width: 100%;
   background: white;
   border: 1px solid var(--border);
   border-radius: 15px;
-  padding: 21px 23px;
-  text-align: left;
-  color: var(--text);
+  padding: 20px 23px;
   box-shadow: var(--shadow);
-  transition: border-color .18s,
-    box-shadow .18s, transform .18s;
+  transition: .18s;
 }
 
 .job-card:hover {
   border-color: #c7bfff;
-  box-shadow: 0 8px 25px rgba(61, 52, 123, .07);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(61,52,123,.07);
 }
 
 .job-top {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
+  align-items: flex-start;
   gap: 15px;
 }
 
 .job-main {
   min-width: 0;
+  flex: 1;
 }
 
 .job-company {
@@ -488,41 +486,32 @@ main {
 
 .job-position {
   margin-top: 5px;
-  font-size: 12px;
   color: #6e728c;
+  font-size: 12px;
   line-height: 1.6;
   overflow-wrap: anywhere;
 }
 
 .job-right {
-  display: flex;
-  align-items: center;
-  gap: 13px;
   flex-shrink: 0;
 }
 
-.job-chevron {
-  font-size: 22px;
-  font-weight: 400;
-  color: #afb2c0;
-}
-
 .job-bottom {
-  margin-top: 17px;
-  padding-top: 14px;
+  margin-top: 16px;
+  padding-top: 13px;
   border-top: 1px solid #f2f2f7;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
 }
 
 .job-meta {
+  color: #9498ac;
+  font-size: 11px;
   display: flex;
   align-items: center;
   gap: 7px;
-  color: #9498ac;
-  font-size: 11px;
   flex-wrap: wrap;
 }
 
@@ -531,12 +520,12 @@ main {
 }
 
 .job-age {
+  color: #8f93a8;
   display: flex;
   align-items: center;
   gap: 6px;
   font-size: 11px;
   font-weight: 600;
-  color: #8f93a8;
   white-space: nowrap;
 }
 
@@ -547,9 +536,53 @@ main {
   border-radius: 50%;
 }
 
-/* ================================
+.job-actions {
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.edit-link {
+  background: none;
+  border: 0;
+  padding: 8px;
+  color: #8589a0;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.edit-link:hover {
+  color: var(--purple);
+}
+
+.card-open {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: inherit;
+}
+
+.job-url {
+  display: inline-block;
+  margin-top: 10px;
+  color: var(--purple);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.job-url:hover {
+  text-decoration: underline;
+}
+
+/* =====================================
    STATUS BADGES
-================================ */
+===================================== */
 
 .status-badge {
   padding: 7px 11px;
@@ -557,6 +590,11 @@ main {
   font-size: 10px;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.status-to-apply {
+  background: #f0edff;
+  color: #7258d9;
 }
 
 .status-pending {
@@ -589,28 +627,28 @@ main {
   color: #737b91;
 }
 
-/* ================================
+/* =====================================
    EMPTY STATE
-================================ */
+===================================== */
 
 .empty-state {
-  min-height: 280px;
+  min-height: 260px;
   padding: 35px 20px;
   border: 1px dashed #dfe1ec;
   background: #ffffff80;
   border-radius: 17px;
   display: flex;
-  align-items: center;
-  justify-content: center;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
   text-align: center;
 }
 
 .empty-icon {
-  width: 56px;
-  height: 56px;
   display: grid;
   place-items: center;
+  width: 56px;
+  height: 56px;
   background: #f0edff;
   color: var(--purple);
   border-radius: 16px;
@@ -621,7 +659,6 @@ main {
 .empty-state h3 {
   margin: 0;
   font-size: 18px;
-  letter-spacing: -.4px;
 }
 
 .empty-state p {
@@ -631,9 +668,9 @@ main {
   line-height: 1.6;
 }
 
-/* ================================
+/* =====================================
    FOOTER
-================================ */
+===================================== */
 
 footer {
   width: 100%;
@@ -658,23 +695,19 @@ footer {
 .footer-actions button {
   border: 0;
   background: none;
-  padding: 0;
   color: var(--purple);
   font-size: 11px;
   font-weight: 700;
+  padding: 0;
 }
 
 .footer-actions button:hover {
   text-decoration: underline;
 }
 
-.footer-divider {
-  color: #c8cad5;
-}
-
-/* ================================
-   MODAL
-================================ */
+/* =====================================
+   MODALS
+===================================== */
 
 .overlay {
   position: fixed;
@@ -683,18 +716,22 @@ footer {
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(26, 25, 46, .48);
+  background: rgba(26,25,46,.48);
   backdrop-filter: blur(4px);
 }
 
 .modal {
-  width: min(490px, 100%);
-  max-height: min(90vh, 850px);
+  width: min(490px,100%);
+  max-height: min(90vh,850px);
   overflow-y: auto;
   background: white;
   padding: 28px;
   border-radius: 20px;
-  box-shadow: 0 24px 80px rgba(20, 20, 50, .2);
+  box-shadow: 0 24px 80px rgba(20,20,50,.2);
+}
+
+.small-modal {
+  max-width: 420px;
 }
 
 .modal-header {
@@ -722,13 +759,19 @@ footer {
 }
 
 .modal-close {
-  border: 0;
-  background: #f5f5f9;
   width: 33px;
   height: 33px;
+  border: 0;
   border-radius: 9px;
+  background: #f5f5f9;
   color: #81859a;
   font-size: 22px;
+}
+
+.modal-description {
+  color: #73778f;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
 .form-group {
@@ -739,9 +782,9 @@ footer {
 .form-group label {
   display: block;
   margin-bottom: 8px;
+  color: #45465b;
   font-size: 12px;
   font-weight: 700;
-  color: #45465b;
 }
 
 .form-control {
@@ -750,9 +793,8 @@ footer {
   padding: 12px 13px;
   border: 1px solid #e0e2eb;
   border-radius: 10px;
-  color: var(--text);
   background: white;
-  outline: none;
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -778,9 +820,9 @@ textarea.form-control {
 
 .form-hint {
   margin: 8px 0 0;
+  color: var(--muted);
   font-size: 11px;
   line-height: 1.5;
-  color: var(--muted);
 }
 
 .modal-actions {
@@ -792,18 +834,11 @@ textarea.form-control {
   border-top: 1px solid var(--border);
 }
 
-.confirm-text {
-  color: #73778f;
-  font-size: 13px;
-  line-height: 1.7;
-}
+/* =====================================
+   TABLET
+===================================== */
 
-/* ================================
-   RESPONSIVE — TABLET
-================================ */
-
-@media (max-width: 768px) {
-
+@media (max-width:768px) {
   .app-container {
     padding: 0 25px;
   }
@@ -821,12 +856,11 @@ textarea.form-control {
   }
 }
 
-/* ================================
-   RESPONSIVE — PHONE
-================================ */
+/* =====================================
+   PHONE
+===================================== */
 
-@media (max-width: 600px) {
-
+@media (max-width:600px) {
   .app-container {
     padding: 0 18px;
   }
@@ -837,10 +871,6 @@ textarea.form-control {
 
   .header-right {
     font-size: 10px;
-  }
-
-  .brand {
-    font-size: 20px;
   }
 
   .hero {
@@ -863,8 +893,6 @@ textarea.form-control {
 
   .stat-label {
     font-size: 10px;
-    line-height: 1.4;
-    min-height: 28px;
   }
 
   .stat-bottom strong {
@@ -895,8 +923,8 @@ textarea.form-control {
   }
 
   .btn-primary {
-    padding: 12px 13px;
     font-size: 11px;
+    padding: 12px 13px;
   }
 
   .toolbar {
@@ -916,10 +944,6 @@ textarea.form-control {
     padding: 17px;
   }
 
-  .job-right {
-    gap: 6px;
-  }
-
   .job-bottom {
     align-items: flex-start;
   }
@@ -928,41 +952,28 @@ textarea.form-control {
     line-height: 1.7;
   }
 
-  .job-age {
-    font-size: 10px;
+  .modal {
+    padding: 21px;
   }
 
   footer {
     flex-wrap: wrap;
     line-height: 1.6;
   }
-
-  .modal {
-    padding: 21px;
-  }
 }
 
-@media (max-width: 390px) {
-
+@media (max-width:390px) {
   .header-right {
     display: none;
-  }
-
-  .stats {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .stat-icon {
     display: none;
   }
 
-  .job-chevron {
-    display: none;
-  }
-
   .job-bottom {
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
   }
 
   .form-row {
@@ -975,12 +986,10 @@ textarea.form-control {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-    transition: none !important;
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
     animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }

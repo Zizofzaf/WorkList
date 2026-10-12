@@ -1,153 +1,31 @@
 
 "use strict";
 
-/* ================================
-   JOBTRACK V2 — MAIN APPLICATION
-================================ */
+/* =====================================
+   JOBTRACK V3 — MAIN APPLICATION
+===================================== */
 
 const $ = id => document.getElementById(id);
 
-/* ================================
+/* =====================================
    STATE
-================================ */
-
+===================================== */
 
 const savedJobs = readJobs();
 
 let jobs = savedJobs || [];
 let storageReady = savedJobs !== null;
 
-// Initial JobTrack applications
-const STARTER_JOBS = [
-  {
-    company: "Colgate",
-    position: "Management Trainee",
-    applied: "",
-    platform: "Other",
-    status: "Pending",
-    notes: "Applied in September 2026."
-  },
-  {
-    company: "P&G",
-    position: "Sales Key Account Trainee",
-    applied: "2026-09-24",
-    platform: "Career Website",
-    status: "Rejected",
-    notes: "Assessment completed."
-  },
-  {
-    company: "KWSP",
-    position: "Exec I, Tech & Analytics, Legal Sight, Technology & Support",
-    applied: "2026-09-24",
-    platform: "Career Website",
-    status: "Pending",
-    notes: "Expected response within 2 months."
-  },
-  {
-    company: "Hock Mei Trading",
-    position: "HR & Admin Executive",
-    applied: "2026-09-28",
-    platform: "JobStreet",
-    status: "Job Closed",
-    notes: ""
-  },
-  {
-    company: "SLB",
-    position: "Early Careers (Commercial & Business)",
-    applied: "2026-09-28",
-    platform: "Career Website",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "Duopharma Biotech",
-    position: "Graduate Trainee Programme",
-    applied: "2026-09-30",
-    platform: "Career Website",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "Econsave",
-    position: "Management Trainee (Purchasing)",
-    applied: "2026-10-05",
-    platform: "JobStreet",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "Toyota",
-    position: "Management Trainee",
-    applied: "2026-10-07",
-    platform: "JobStreet",
-    status: "Pending",
-    notes: ""
-  },
-  {
-    company: "SSM",
-    position: "Apprenticeship Program (SAP)",
-    applied: "2026-10-07",
-    platform: "JobStreet",
-    status: "Pending",
-    notes: "Email activity: 8 October 2026, 8:00 AM."
-  },
-  {
-    company: "MR.DIY",
-    position: "Sales Executive (Corporate Sales)",
-    applied: "",
-    platform: "Career Website",
-    status: "Pending",
-    notes: "Application date not recorded."
-  },
-  {
-    company: "Mydin",
-    position: "Not specified",
-    applied: "",
-    platform: "Other",
-    status: "Pending",
-    notes: "Position and application date not recorded."
-  }
-];
-
-// Import starter applications once per browser.
-const IMPORT_KEY = "jobtrack_starter_v2_imported";
-
-if (
-  storageReady &&
-  localStorage.getItem(IMPORT_KEY) !== "yes"
-) {
-  const existingCompanies = new Set(
-    jobs.map(job => job.company.trim().toLowerCase())
-  );
-
-  const missingJobs = STARTER_JOBS
-    .filter(job =>
-      !existingCompanies.has(
-        job.company.trim().toLowerCase()
-      )
-    )
-    .map(job => ({
-      ...job,
-      id: createJobId()
-    }));
-
-  const updatedJobs = [...jobs, ...missingJobs];
-
-  if (writeJobs(updatedJobs)) {
-    jobs = updatedJobs;
-    localStorage.setItem(IMPORT_KEY, "yes");
-  }
-}
-
-
-let currentTab = "active";
+let currentTab = "planned";
 let currentSort = "newest";
+
 let editingId = null;
+let applyingId = null;
 let pendingAction = null;
 
-/* ================================
+/* =====================================
    HELPERS
-================================ */
+===================================== */
 
 function createElement(tag, className = "", text = "") {
   const el = document.createElement(tag);
@@ -157,25 +35,25 @@ function createElement(tag, className = "", text = "") {
   }
 
   el.textContent = text;
+
   return el;
 }
 
 function parseDate(value) {
-  if (!value) {
-    return null;
-  }
+  if (!value) return null;
 
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
 
-  if (!match) {
-    return null;
-  }
+  if (!match) return null;
 
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
 
-  const date = new Date(Date.UTC(year, month - 1, day));
+  const date = new Date(
+    Date.UTC(year, month - 1, day)
+  );
 
   if (
     date.getUTCFullYear() !== year ||
@@ -187,26 +65,6 @@ function parseDate(value) {
 
   return date;
 }
-
-/* FORMAT DATE WITH WEEKDAY */
-
-function formatDate(value) {
-  const date = parseDate(value);
-
-  if (!date) {
-    return value || "Date not set";
-  }
-
-  return date.toLocaleDateString("en-GB", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC"
-  });
-}
-
-/* TODAY IN LOCAL TIME */
 
 function todayLocal() {
   const now = new Date();
@@ -224,24 +82,36 @@ function todayLocal() {
   return `${year}-${month}-${day}`;
 }
 
-/* ================================
+function formatDate(value) {
+  const date = parseDate(value);
+
+  if (!date) {
+    return value || "Date not set";
+  }
+
+  return date.toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+}
+
+/* =====================================
    DAYS SINCE APPLIED
-================================ */
+===================================== */
 
 function getDaysSinceApplied(value) {
-  const appliedDate = parseDate(value);
+  const applied = parseDate(value);
 
-  if (!appliedDate) {
-    return null;
-  }
+  if (!applied) return null;
 
   const today = parseDate(todayLocal());
 
-  const difference = today.getTime() -
-    appliedDate.getTime();
-
   return Math.round(
-    difference / (1000 * 60 * 60 * 24)
+    (today.getTime() - applied.getTime()) /
+    86400000
   );
 }
 
@@ -253,31 +123,49 @@ function formatDaysSinceApplied(value) {
   }
 
   if (days < 0) {
-    const remaining = Math.abs(days);
-
-    return remaining === 1
-      ? "In 1 day"
-      : `In ${remaining} days`;
+    return `In ${Math.abs(days)} day${days === -1 ? "" : "s"}`;
   }
 
-  if (days === 0) {
-    return "Today";
-  }
-
-  if (days === 1) {
-    return "Yesterday";
-  }
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
 
   return `${days} days ago`;
 }
 
-/* ================================
+/* =====================================
+   URL HELPER
+===================================== */
+
+function safeJobUrl(value) {
+  if (!value) return "";
+
+  try {
+    const url = new URL(value);
+
+    if (
+      url.protocol !== "https:" &&
+      url.protocol !== "http:"
+    ) {
+      return "";
+    }
+
+    return url.href;
+
+  } catch {
+    return "";
+  }
+}
+
+/* =====================================
    STORAGE
-================================ */
+===================================== */
 
 function persist(nextJobs) {
   if (!storageReady) {
-    alert("Saved data is unavailable. Changes are disabled.");
+    alert(
+      "Saved data is unavailable. " +
+      "Changes are currently disabled."
+    );
     return false;
   }
 
@@ -291,38 +179,78 @@ function persist(nextJobs) {
   return true;
 }
 
-/* ================================
-   APPLICATION FILTERS
-================================ */
+/* =====================================
+   APPLICATION GROUPS
+===================================== */
+
+function getJobGroup(job) {
+  if (isPlannedStatus(job.status)) {
+    return "planned";
+  }
+
+  if (isHistoryStatus(job.status)) {
+    return "history";
+  }
+
+  return "active";
+}
+
+function getPlannedJobs() {
+  return jobs.filter(job =>
+    getJobGroup(job) === "planned"
+  );
+}
 
 function getActiveJobs() {
   return jobs.filter(job =>
-    !isHistoryStatus(job.status)
+    getJobGroup(job) === "active"
   );
 }
 
 function getHistoryJobs() {
   return jobs.filter(job =>
-    isHistoryStatus(job.status)
+    getJobGroup(job) === "history"
   );
 }
 
 function getCurrentJobs() {
-  return currentTab === "history"
-    ? getHistoryJobs()
-    : getActiveJobs();
+  if (currentTab === "planned") {
+    return getPlannedJobs();
+  }
+
+  if (currentTab === "history") {
+    return getHistoryJobs();
+  }
+
+  return getActiveJobs();
 }
 
-/* ================================
-   SORT APPLICATIONS
-================================ */
+/* =====================================
+   STATISTICS
+===================================== */
+
+function updateStats() {
+  const planned = getPlannedJobs();
+  const active = getActiveJobs();
+  const history = getHistoryJobs();
+
+  $("statPlanned").textContent = planned.length;
+  $("statActive").textContent = active.length;
+  $("statHistory").textContent = history.length;
+
+  $("plannedCount").textContent = planned.length;
+  $("activeCount").textContent = active.length;
+  $("historyCount").textContent = history.length;
+}
+
+/* =====================================
+   SORTING
+===================================== */
 
 function sortJobs(input) {
   const sorted = [...input];
 
   sorted.sort((a, b) => {
-
-    // COMPANY A-Z
     if (currentSort === "az") {
       return a.company.localeCompare(
         b.company,
@@ -331,8 +259,22 @@ function sortJobs(input) {
       );
     }
 
-    const dateA = parseDate(a.applied)?.getTime() ?? null;
-    const dateB = parseDate(b.applied)?.getTime() ?? null;
+    // Planned applications are ordered by date added.
+    // Active / History use application date.
+    const getSortDate = job => {
+      if (currentTab === "planned") {
+        const created = Date.parse(job.createdAt || "");
+
+        return Number.isFinite(created)
+          ? created
+          : null;
+      }
+
+      return parseDate(job.applied)?.getTime() ?? null;
+    };
+
+    const dateA = getSortDate(a);
+    const dateB = getSortDate(b);
 
     // Missing dates always go last.
     if (dateA === null && dateB !== null) return 1;
@@ -342,73 +284,51 @@ function sortJobs(input) {
       return 0;
     }
 
-    // OLDEST FIRST
     if (currentSort === "oldest") {
       return dateA - dateB;
     }
 
-    // NEWEST FIRST (DEFAULT)
     return dateB - dateA;
   });
 
   return sorted;
 }
 
-/* ================================
-   UPDATE STATISTICS
-================================ */
-
-function updateStats() {
-  const active = getActiveJobs();
-  const history = getHistoryJobs();
-
-  const interviews = active.filter(job =>
-    job.status === "Interview"
-  );
-
-  $("statActive").textContent = active.length;
-  $("statInterview").textContent = interviews.length;
-  $("statHistory").textContent = history.length;
-
-  $("activeCount").textContent = active.length;
-  $("historyCount").textContent = history.length;
-}
-
-/* ================================
-   TABS
-================================ */
+/* =====================================
+   SWITCH TAB
+===================================== */
 
 function switchTab(tab) {
   currentTab = tab;
 
-  $("activeTab").classList.toggle(
-    "active",
-    tab === "active"
-  );
+  const tabs = {
+    planned: "plannedTab",
+    active: "activeTab",
+    history: "historyTab"
+  };
 
-  $("historyTab").classList.toggle(
-    "active",
-    tab === "history"
-  );
+  Object.entries(tabs).forEach(([key, id]) => {
+    const isActive = key === tab;
 
-  $("activeTab").setAttribute(
-    "aria-pressed",
-    String(tab === "active")
-  );
+    $(id).classList.toggle(
+      "active",
+      isActive
+    );
 
-  $("historyTab").setAttribute(
-    "aria-pressed",
-    String(tab === "history")
-  );
+    $(id).setAttribute(
+      "aria-pressed",
+      String(isActive)
+    );
+  });
 
   $("search").value = "";
 
   render();
 }
 
-/* ================================
+/* =====================================
    RENDER APPLICATIONS
-================================ */
+===================================== */
 
 function render() {
   updateStats();
@@ -417,9 +337,7 @@ function render() {
   list.replaceChildren();
 
   const query = $("search")
-    .value
-    .trim()
-    .toLowerCase();
+    .value.trim().toLowerCase();
 
   const currentJobs = getCurrentJobs();
 
@@ -429,7 +347,8 @@ function render() {
       job.position,
       job.platform,
       job.status,
-      job.notes
+      job.notes,
+      job.jobUrl || ""
     ].join(" ").toLowerCase();
 
     return text.includes(query);
@@ -447,23 +366,25 @@ function render() {
   });
 }
 
-/* ================================
+/* =====================================
    JOB CARD
-================================ */
+===================================== */
 
 function createJobCard(job) {
-  const button = createElement(
+  const card = createElement("article", "job-card");
+
+  const openButton = createElement(
     "button",
-    "job-card"
+    "card-open"
   );
 
-  button.type = "button";
-  button.setAttribute(
+  openButton.type = "button";
+
+  openButton.setAttribute(
     "aria-label",
     `Edit ${job.company} application`
   );
 
-  // TOP
   const top = createElement("div", "job-top");
 
   const main = createElement("div", "job-main");
@@ -482,7 +403,10 @@ function createJobCard(job) {
 
   main.append(company, position);
 
-  const right = createElement("div", "job-right");
+  const right = createElement(
+    "div",
+    "job-right"
+  );
 
   const statusClass = job.status
     .toLowerCase()
@@ -494,16 +418,10 @@ function createJobCard(job) {
     job.status
   );
 
-  const chevron = createElement(
-    "span",
-    "job-chevron",
-    "›"
-  );
+  right.appendChild(badge);
 
-  right.append(badge, chevron);
   top.append(main, right);
 
-  // BOTTOM
   const bottom = createElement(
     "div",
     "job-bottom"
@@ -526,10 +444,18 @@ function createJobCard(job) {
     "·"
   );
 
+  let dateLabel;
+
+  if (isPlannedStatus(job.status)) {
+    dateLabel = "Not applied yet";
+  } else {
+    dateLabel = formatDate(job.applied);
+  }
+
   const date = createElement(
     "span",
     "",
-    formatDate(job.applied)
+    dateLabel
   );
 
   meta.append(platform, separator, date);
@@ -547,24 +473,81 @@ function createJobCard(job) {
   const ageText = createElement(
     "span",
     "",
-    formatDaysSinceApplied(job.applied)
+    isPlannedStatus(job.status)
+      ? "Planned"
+      : formatDaysSinceApplied(job.applied)
   );
 
   age.append(dot, ageText);
 
   bottom.append(meta, age);
-  button.append(top, bottom);
 
-  button.addEventListener("click", () => {
+  openButton.append(top, bottom);
+
+  openButton.addEventListener("click", () => {
     openEditor(job);
   });
 
-  return button;
+  card.appendChild(openButton);
+
+  // Job URL is separate from the edit button.
+  const jobUrl = safeJobUrl(job.jobUrl);
+
+  if (jobUrl) {
+    const link = createElement(
+      "a",
+      "job-url",
+      "↗ Open job posting"
+    );
+
+    link.href = jobUrl;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+
+    card.appendChild(link);
+  }
+
+  // Planned application actions.
+  if (isPlannedStatus(job.status)) {
+    const actions = createElement(
+      "div",
+      "job-actions"
+    );
+
+    const edit = createElement(
+      "button",
+      "edit-link",
+      "Edit"
+    );
+
+    edit.type = "button";
+
+    edit.addEventListener("click", () => {
+      openEditor(job);
+    });
+
+    const applied = createElement(
+      "button",
+      "btn-applied",
+      "✓ Mark as Applied"
+    );
+
+    applied.type = "button";
+
+    applied.addEventListener("click", () => {
+      openAppliedModal(job);
+    });
+
+    actions.append(edit, applied);
+    card.appendChild(actions);
+  }
+
+  return card;
 }
 
-/* ================================
+/* =====================================
    EMPTY STATE
-================================ */
+===================================== */
 
 function renderEmpty(list, total, query) {
   const wrapper = createElement(
@@ -575,7 +558,7 @@ function renderEmpty(list, total, query) {
   const icon = createElement(
     "div",
     "empty-icon",
-    currentTab === "history" ? "↺" : "✦"
+    "✦"
   );
 
   const title = createElement("h3");
@@ -583,31 +566,65 @@ function renderEmpty(list, total, query) {
 
   if (query && total > 0) {
     title.textContent = "No applications found";
+
     description.textContent =
       "Try searching with another keyword.";
 
+  } else if (currentTab === "planned") {
+    title.textContent = "Nothing planned yet";
+
+    description.textContent =
+      "Save the opportunities you want to apply for.";
+
   } else if (currentTab === "history") {
     title.textContent = "No history yet";
+
     description.textContent =
       "Rejected and closed applications will appear here.";
 
   } else {
     title.textContent = "Your journey starts here";
+
     description.textContent =
-      "Add your first application to get started.";
+      "Applied jobs will appear here.";
   }
 
   wrapper.append(icon, title, description);
   list.appendChild(wrapper);
 }
 
-/* ================================
-   ADD / EDIT MODAL
-================================ */
+/* =====================================
+   MODAL HELPERS
+===================================== */
+
+function openOverlay(id) {
+  $(id).classList.remove("hidden");
+  document.body.classList.add("modal-open");
+}
+
+function closeOverlay(id) {
+  $(id).classList.add("hidden");
+
+  const anyOpen = [
+    "editorOverlay",
+    "appliedOverlay",
+    "confirmOverlay"
+  ].some(overlayId =>
+    !$(overlayId).classList.contains("hidden")
+  );
+
+  if (!anyOpen) {
+    document.body.classList.remove("modal-open");
+  }
+}
+
+/* =====================================
+   ADD / EDIT APPLICATION
+===================================== */
 
 function openEditor(job = null) {
   if (!storageReady) {
-    alert("Cannot edit while saved data is unavailable.");
+    alert("Saved data is unavailable.");
     return;
   }
 
@@ -624,10 +641,18 @@ function openEditor(job = null) {
   $("company").value = job?.company ?? "";
   $("position").value = job?.position ?? "";
 
-  // Existing records with no date stay blank.
-  $("applied").value = job
-    ? job.applied
-    : todayLocal();
+  // From To Apply, new jobs default to To Apply.
+  // Existing records keep their current status.
+  $("status").value = job?.status ||
+    (currentTab === "planned"
+      ? "To Apply"
+      : "Pending");
+
+  $("applied").value = job?.applied || "";
+
+  if (!job && currentTab !== "planned") {
+    $("applied").value = todayLocal();
+  }
 
   const platform = job?.platform || "JobStreet";
 
@@ -639,37 +664,50 @@ function openEditor(job = null) {
     ? platform
     : "Other";
 
-  $("status").value = job?.status || "Pending";
+  $("jobUrl").value = job?.jobUrl || "";
   $("notes").value = job?.notes || "";
 
   updateStatusHelp();
 
-  $("editorOverlay").classList.remove("hidden");
-
-  document.body.style.overflow = "hidden";
+  openOverlay("editorOverlay");
 
   $("company").focus();
 }
 
 function closeEditor() {
-  $("editorOverlay").classList.add("hidden");
-
-  document.body.style.overflow = "";
-
+  closeOverlay("editorOverlay");
   editingId = null;
 }
 
 function updateStatusHelp() {
   const status = $("status").value;
+  const applied = $("applied");
 
-  $("statusHelp").textContent = isHistoryStatus(status)
-    ? "This application will appear under History."
-    : "This application will appear under Active.";
+  if (isPlannedStatus(status)) {
+    $("statusHelp").textContent =
+      "Save this job under To Apply. " +
+      "Use Mark as Applied when you submit it.";
+
+    applied.disabled = true;
+    applied.value = "";
+
+  } else if (isHistoryStatus(status)) {
+    $("statusHelp").textContent =
+      "This application will appear under History.";
+
+    applied.disabled = false;
+
+  } else {
+    $("statusHelp").textContent =
+      "This application will appear under Active.";
+
+    applied.disabled = false;
+  }
 }
 
-/* ================================
+/* =====================================
    SAVE APPLICATION
-================================ */
+===================================== */
 
 function saveApplication(event) {
   event.preventDefault();
@@ -685,14 +723,35 @@ function saveApplication(event) {
     ? jobs.find(job => job.id === editingId)
     : null;
 
+  if (editingId && !oldJob) {
+    alert("Application not found.");
+    return;
+  }
+
+  const status = $("status").value;
+
+  const rawUrl = $("jobUrl").value.trim();
+  const jobUrl = rawUrl ? safeJobUrl(rawUrl) : "";
+
+  if (rawUrl && !jobUrl) {
+    alert("Please enter a valid HTTP or HTTPS job URL.");
+    return;
+  }
+
   const data = {
+    ...oldJob,
     id: editingId || createJobId(),
     company,
     position,
-    applied: $("applied").value,
+    applied: isPlannedStatus(status)
+      ? ""
+      : $("applied").value,
     platform: $("platform").value,
-    status: $("status").value,
-    notes: $("notes").value.trim()
+    status,
+    notes: $("notes").value.trim(),
+    jobUrl,
+    createdAt: oldJob?.createdAt ||
+      new Date().toISOString()
   };
 
   const nextJobs = editingId
@@ -705,38 +764,97 @@ function saveApplication(event) {
     return;
   }
 
-  const wasHistory = oldJob
-    ? isHistoryStatus(oldJob.status)
-    : false;
-
-  const nowHistory = isHistoryStatus(data.status);
-
   closeEditor();
 
-  // Move to the corresponding view on change.
-  if (wasHistory !== nowHistory) {
-    switchTab(nowHistory ? "history" : "active");
-  }
-
-  // New History application
-  if (!oldJob && nowHistory) {
-    switchTab("history");
-  }
+  switchTab(getJobGroup(data));
 }
 
-/* ================================
-   BACKUP JSON
-================================ */
+/* =====================================
+   MARK AS APPLIED
+===================================== */
+
+function openAppliedModal(job) {
+  if (!storageReady) {
+    alert("Saved data is unavailable.");
+    return;
+  }
+
+  applyingId = job.id;
+
+  $("appliedCompany").textContent =
+    `${job.company} — ${job.position}`;
+
+  $("appliedDate").value = todayLocal();
+
+  openOverlay("appliedOverlay");
+
+  $("appliedDate").focus();
+}
+
+function closeAppliedModal() {
+  closeOverlay("appliedOverlay");
+  applyingId = null;
+}
+
+function confirmApplied(event) {
+  event.preventDefault();
+
+  if (!applyingId) {
+    return;
+  }
+
+  const date = $("appliedDate").value;
+
+  if (!parseDate(date)) {
+    alert("Please select a valid application date.");
+    return;
+  }
+
+  const job = jobs.find(item =>
+    item.id === applyingId
+  );
+
+  if (!job || !isPlannedStatus(job.status)) {
+    alert("This job is no longer under To Apply.");
+    closeAppliedModal();
+    return;
+  }
+
+  const updatedJobs = jobs.map(item => {
+    if (item.id !== applyingId) {
+      return item;
+    }
+
+    return {
+      ...item,
+      applied: date,
+      status: "Pending"
+    };
+  });
+
+  if (!persist(updatedJobs)) {
+    return;
+  }
+
+  closeAppliedModal();
+
+  // Automatically switch to Active.
+  switchTab("active");
+}
+
+/* =====================================
+   BACKUP
+===================================== */
 
 function backupData() {
   if (!storageReady) {
-    alert("Unable to back up unreadable saved data.");
+    alert("Unable to back up unreadable data.");
     return;
   }
 
   const backup = {
     app: "JobTrack",
-    version: 2,
+    version: 3,
     exportedAt: new Date().toISOString(),
     applications: jobs
   };
@@ -751,7 +869,9 @@ function backupData() {
   const link = document.createElement("a");
 
   link.href = url;
-  link.download = `jobtrack-backup-${todayLocal()}.json`;
+
+  link.download =
+    `jobtrack-backup-${todayLocal()}.json`;
 
   document.body.appendChild(link);
   link.click();
@@ -762,27 +882,27 @@ function backupData() {
   }, 1000);
 }
 
-/* ================================
-   CONFIRMATION MODAL
-================================ */
+/* =====================================
+   RESTORE CONFIRMATION
+===================================== */
 
 function openConfirm(message, callback) {
   pendingAction = callback;
 
   $("confirmText").textContent = message;
-  $("confirmOverlay").classList.remove("hidden");
 
+  openOverlay("confirmOverlay");
   $("cancelConfirm").focus();
 }
 
 function closeConfirm() {
-  $("confirmOverlay").classList.add("hidden");
+  closeOverlay("confirmOverlay");
   pendingAction = null;
 }
 
-/* ================================
+/* =====================================
    RESTORE BACKUP
-================================ */
+===================================== */
 
 async function restoreData(event) {
   const file = event.target.files?.[0];
@@ -803,14 +923,16 @@ async function restoreData(event) {
 
     openConfirm(
       `Restore ${restoredJobs.length} applications? ` +
-      `This will replace all current Active and History records.`,
+      "This will replace your current To Apply, " +
+      "Active and History records.",
       () => {
         if (!writeJobs(restoredJobs)) {
           return;
         }
 
-        storageReady = true;
         jobs = restoredJobs;
+        storageReady = true;
+
         switchTab("active");
       }
     );
@@ -819,24 +941,28 @@ async function restoreData(event) {
     console.error("Restore failed:", error);
 
     alert(
-      "Invalid backup file. Please select a valid " +
-      "JobTrack JSON backup."
+      "Invalid backup file. Please select a " +
+      "valid JobTrack JSON backup."
     );
   }
 
   event.target.value = "";
 }
 
-/* ================================
+/* =====================================
    EVENT LISTENERS
-================================ */
+===================================== */
 
-// Add application
+// New application
 $("addBtn").addEventListener("click", () => {
   openEditor();
 });
 
-// Tabs
+// Three tabs
+$("plannedTab").addEventListener("click", () => {
+  switchTab("planned");
+});
+
 $("activeTab").addEventListener("click", () => {
   switchTab("active");
 });
@@ -848,46 +974,69 @@ $("historyTab").addEventListener("click", () => {
 // Search
 $("search").addEventListener("input", render);
 
-// Sorting
+// Sort
 $("sortSelect").addEventListener("change", event => {
   currentSort = event.target.value;
   render();
 });
 
-// Save
+// Save application
 $("jobForm").addEventListener(
   "submit",
   saveApplication
 );
 
-// Status helper
+// Status selection
 $("status").addEventListener(
   "change",
   updateStatusHelp
 );
 
-// Close modal buttons
+// Close editor
 document.querySelectorAll("[data-close]").forEach(
   button => {
     button.addEventListener("click", closeEditor);
   }
 );
 
-// Click outside editor
+// Mark as Applied
+$("appliedForm").addEventListener(
+  "submit",
+  confirmApplied
+);
+
+$("closeApplied").addEventListener(
+  "click",
+  closeAppliedModal
+);
+
+$("cancelApplied").addEventListener(
+  "click",
+  closeAppliedModal
+);
+
+// Close when clicking outside modal
 $("editorOverlay").addEventListener("click", event => {
   if (event.target === $("editorOverlay")) {
     closeEditor();
   }
 });
 
+$("appliedOverlay").addEventListener("click", event => {
+  if (event.target === $("appliedOverlay")) {
+    closeAppliedModal();
+  }
+});
+
 // Escape key
 document.addEventListener("keydown", event => {
-  if (event.key !== "Escape") {
-    return;
-  }
+  if (event.key !== "Escape") return;
 
   if (!$("confirmOverlay").classList.contains("hidden")) {
     closeConfirm();
+
+  } else if (!$("appliedOverlay").classList.contains("hidden")) {
+    closeAppliedModal();
 
   } else if (!$("editorOverlay").classList.contains("hidden")) {
     closeEditor();
@@ -911,7 +1060,7 @@ $("restoreFile").addEventListener(
   restoreData
 );
 
-// Restore confirmation
+// Confirm restore
 $("cancelConfirm").addEventListener(
   "click",
   closeConfirm
@@ -927,13 +1076,14 @@ $("confirmAction").addEventListener("click", () => {
   }
 });
 
-/* ================================
-   INITIALIZE
-================================ */
+/* =====================================
+   INITIALIZATION
+===================================== */
 
-switchTab("active");
+// V3 starts on To Apply.
+switchTab("planned");
 
-// Refresh day counts when user returns to the tab.
+// Refresh elapsed-day labels when returning to Safari.
 document.addEventListener("visibilitychange", () => {
   if (!document.hidden) {
     render();

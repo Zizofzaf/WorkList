@@ -1,12 +1,14 @@
 
 "use strict";
 
-/* ================================
-   JOBTRACK V2 — STORAGE
-================================ */
+/* =====================================
+   JOBTRACK V3 — STORAGE
+===================================== */
 
-// Keep the old key so existing data survives.
+// Do not change: preserves existing V1/V2 data.
 const KEY = "jobtrack_v1_applications";
+
+const PLANNED_STATUS = "To Apply";
 
 const ACTIVE_STATUSES = [
   "Pending",
@@ -21,13 +23,26 @@ const HISTORY_STATUSES = [
 ];
 
 const ALL_STATUSES = [
+  PLANNED_STATUS,
   ...ACTIVE_STATUSES,
   ...HISTORY_STATUSES
 ];
 
+function isPlannedStatus(status) {
+  return status === PLANNED_STATUS;
+}
+
 function isHistoryStatus(status) {
   return HISTORY_STATUSES.includes(status);
 }
+
+function isActiveStatus(status) {
+  return ACTIVE_STATUSES.includes(status);
+}
+
+/* =====================================
+   VALIDATE APPLICATION
+===================================== */
 
 function validJob(job) {
   if (
@@ -47,11 +62,17 @@ function validJob(job) {
     typeof job.platform === "string" &&
     typeof job.status === "string" &&
     typeof job.notes === "string" &&
-    ALL_STATUSES.includes(job.status)
+    ALL_STATUSES.includes(job.status) &&
+    (job.jobUrl === undefined ||
+      typeof job.jobUrl === "string") &&
+    (job.createdAt === undefined ||
+      typeof job.createdAt === "string")
   );
 }
 
-/* READ DATA */
+/* =====================================
+   READ LOCAL STORAGE
+===================================== */
 
 function readJobs() {
   try {
@@ -78,18 +99,27 @@ function readJobs() {
 
     alert(
       "Unable to read saved applications. " +
-      "Do not restore or add new data until " +
-      "you have checked your browser storage."
+      "Please do not overwrite your existing " +
+      "browser data before making a backup."
     );
 
     return null;
   }
 }
 
-/* SAVE DATA */
+/* =====================================
+   WRITE LOCAL STORAGE
+===================================== */
 
 function writeJobs(data) {
   try {
+    if (
+      !Array.isArray(data) ||
+      !data.every(validJob)
+    ) {
+      throw new Error("Invalid application data");
+    }
+
     localStorage.setItem(
       KEY,
       JSON.stringify(data)
@@ -101,7 +131,7 @@ function writeJobs(data) {
     console.error("JobTrack save error:", error);
 
     alert(
-      "Unable to save changes. " +
+      "Unable to save applications. " +
       "Please check your browser storage."
     );
 
@@ -109,7 +139,9 @@ function writeJobs(data) {
   }
 }
 
-/* CREATE UNIQUE ID */
+/* =====================================
+   GENERATE UNIQUE ID
+===================================== */
 
 function createJobId() {
   if (
@@ -126,13 +158,15 @@ function createJobId() {
   );
 }
 
-/* VALIDATE BACKUP */
+/* =====================================
+   VALIDATE BACKUP
+===================================== */
 
 function validateBackup(data) {
   if (
     !data ||
     data.app !== "JobTrack" ||
-    ![1, 2].includes(data.version) ||
+    ![1, 2, 3].includes(data.version) ||
     !Array.isArray(data.applications)
   ) {
     return false;

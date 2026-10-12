@@ -11,10 +11,134 @@ const $ = id => document.getElementById(id);
    STATE
 ===================================== */
 
+
 const savedJobs = readJobs();
 
 let jobs = savedJobs || [];
 let storageReady = savedJobs !== null;
+
+// Initial JobTrack applications
+const STARTER_JOBS = [
+  {
+    company: "Colgate",
+    position: "Management Trainee",
+    applied: "",
+    platform: "Other",
+    status: "Pending",
+    notes: "Applied in September 2026."
+  },
+  {
+    company: "P&G",
+    position: "Sales Key Account Trainee",
+    applied: "2026-09-24",
+    platform: "Career Website",
+    status: "Rejected",
+    notes: "Assessment completed."
+  },
+  {
+    company: "KWSP",
+    position: "Exec I, Tech & Analytics, Legal Sight, Technology & Support",
+    applied: "2026-09-24",
+    platform: "Career Website",
+    status: "Pending",
+    notes: "Expected response within 2 months."
+  },
+  {
+    company: "Hock Mei Trading",
+    position: "HR & Admin Executive",
+    applied: "2026-09-28",
+    platform: "JobStreet",
+    status: "Job Closed",
+    notes: ""
+  },
+  {
+    company: "SLB",
+    position: "Early Careers (Commercial & Business)",
+    applied: "2026-09-28",
+    platform: "Career Website",
+    status: "Pending",
+    notes: ""
+  },
+  {
+    company: "Duopharma Biotech",
+    position: "Graduate Trainee Programme",
+    applied: "2026-09-30",
+    platform: "Career Website",
+    status: "Pending",
+    notes: ""
+  },
+  {
+    company: "Econsave",
+    position: "Management Trainee (Purchasing)",
+    applied: "2026-10-05",
+    platform: "JobStreet",
+    status: "Pending",
+    notes: ""
+  },
+  {
+    company: "Toyota",
+    position: "Management Trainee",
+    applied: "2026-10-07",
+    platform: "JobStreet",
+    status: "Pending",
+    notes: ""
+  },
+  {
+    company: "SSM",
+    position: "Apprenticeship Program (SAP)",
+    applied: "2026-10-07",
+    platform: "JobStreet",
+    status: "Pending",
+    notes: "Email activity: 8 October 2026, 8:00 AM."
+  },
+  {
+    company: "MR.DIY",
+    position: "Sales Executive (Corporate Sales)",
+    applied: "",
+    platform: "Career Website",
+    status: "Pending",
+    notes: "Application date not recorded."
+  },
+  {
+    company: "Mydin",
+    position: "Not specified",
+    applied: "",
+    platform: "Other",
+    status: "Pending",
+    notes: "Position and application date not recorded."
+  }
+];
+
+// Import starter applications once per browser.
+const IMPORT_KEY = "jobtrack_starter_v2_imported";
+
+if (
+  storageReady &&
+  localStorage.getItem(IMPORT_KEY) !== "yes"
+) {
+  const existingCompanies = new Set(
+    jobs.map(job => job.company.trim().toLowerCase())
+  );
+
+  const missingJobs = STARTER_JOBS
+    .filter(job =>
+      !existingCompanies.has(
+        job.company.trim().toLowerCase()
+      )
+    )
+    .map(job => ({
+      ...job,
+      id: createJobId()
+    }));
+
+  const updatedJobs = [...jobs, ...missingJobs];
+
+  if (writeJobs(updatedJobs)) {
+    jobs = updatedJobs;
+    localStorage.setItem(IMPORT_KEY, "yes");
+  }
+}
+
 
 let currentTab = "planned";
 let currentSort = "newest";
